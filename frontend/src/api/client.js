@@ -3,7 +3,7 @@ import axios from "axios";
 // VITE_API_URL is set in .env.local
 // - Leave unset for desktop browser (Vite proxy handles /api → localhost:8000)
 // - Set to your backend ngrok URL when testing via Telegram on mobile
-const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+const BASE_URL = "https://surprising-magic-production-2dbb.up.railway.app/api";
 
 // When true, the 401 handler does NOT reload the page (avoids loop with fake dev token)
 const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_TELEGRAM === "true";
