@@ -26,14 +26,20 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Live migration: widen telegram_id from INTEGER → BIGINT so users with
-    # IDs above 2 147 483 647 (all accounts created after ~2019) can auth.
-    # Safe to run repeatedly — PostgreSQL is a no-op if already BIGINT;
-    # SQLite doesn't support ALTER TYPE so the except swallows that silently.
+    # Live migration: widen telegram_id from INTEGER → BIGINT.
     try:
         async with engine.begin() as conn:
             await conn.execute(
                 text("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT")
+            )
+    except Exception:
+        pass
+
+    # Live migration: add reminder_sent column to bookings if missing.
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text("ALTER TABLE bookings ADD COLUMN reminder_sent BOOLEAN NOT NULL DEFAULT FALSE")
             )
     except Exception:
         pass

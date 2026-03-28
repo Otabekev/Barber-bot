@@ -18,5 +18,7 @@
   "today_not_registered": "❌ You are not registered. Press /start.",
   "status_pending": "⏳",
   "status_confirmed": "✅",
-  "back": "⬅️ Back"
+  "back": "⬅️ Back",
+  "remind_confirmed": "👍 You confirmed your visit. See you there!",
+  "remind_cancelled_customer": "Booking cancelled. See you next time! ✌️"
 }

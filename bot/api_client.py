@@ -40,3 +40,14 @@ class BackendClient:
             if resp.status_code == 200:
                 return resp.json()
             return None
+
+    async def cancel_from_reminder(self, booking_id: int, telegram_id: int) -> dict:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(
+                f"{self._base}/api/bot/cancel-from-reminder",
+                json={"booking_id": booking_id, "telegram_id": telegram_id},
+                headers=self._headers,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            return {"ok": False}

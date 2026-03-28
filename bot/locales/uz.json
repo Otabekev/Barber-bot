@@ -18,5 +18,7 @@
   "today_not_registered": "❌ Siz ro'yxatdan o'tmagansiz. /start bosing.",
   "status_pending": "⏳",
   "status_confirmed": "✅",
-  "back": "⬅️ Orqaga"
+  "back": "⬅️ Orqaga",
+  "remind_confirmed": "👍 Siz kelishingizni tasdiqladi. Sartarosh kutadi!",
+  "remind_cancelled_customer": "Bron bekor qilindi. Keyingi safar ko'rishguncha! ✌️"
 }

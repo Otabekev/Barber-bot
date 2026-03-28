@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 TELEGRAM_API = "https://api.telegram.org/bot{token}/sendMessage"
 
 # Per-language message templates
+TELEGRAM_API_SEND = "https://api.telegram.org/bot{token}/sendMessage"
+
 _MESSAGES = {
     "new_booking": {
         "uz": "📅 <b>Yangi bron!</b>\n\n👤 {name}\n📞 {phone}\n🗓 {date} — {time}\n\nBronni tasdiqlang yoki bekor qiling.",
@@ -33,6 +35,28 @@ _MESSAGES = {
         "uz": "🎉 <b>Tashrif tugadi!</b> Rahmat!\n\n🏪 {shop}",
         "ru": "🎉 <b>Визит завершён!</b> Спасибо!\n\n🏪 {shop}",
         "en": "🎉 <b>Visit completed!</b> Thank you!\n\n🏪 {shop}",
+    },
+    "customer_cancelled": {
+        "uz": "❌ <b>Mijoz bronni bekor qildi!</b>\n\n👤 {name}\n📞 {phone}\n🗓 {date} — {time}",
+        "ru": "❌ <b>Клиент отменил запись!</b>\n\n👤 {name}\n📞 {phone}\n🗓 {date} — {time}",
+        "en": "❌ <b>Customer cancelled their booking!</b>\n\n👤 {name}\n📞 {phone}\n🗓 {date} — {time}",
+    },
+    "reminder": {
+        "uz": "⏰ <b>Eslatma!</b>\n\nBugun soat {time} da {shop} sartaroshxonasiga yozilgansiz.\n📍 {address}\n\nKelasizmi?",
+        "ru": "⏰ <b>Напоминание!</b>\n\nСегодня в {time} у вас запись в барбершоп {shop}.\n📍 {address}\n\nВы придёте?",
+        "en": "⏰ <b>Reminder!</b>\n\nYou have a booking at {shop} today at {time}.\n📍 {address}\n\nWill you come?",
+    },
+    "remind_yes_btn": {"uz": "✅ Ha, kelaman", "ru": "✅ Да, приду", "en": "✅ Yes, I'll come"},
+    "remind_no_btn":  {"uz": "❌ Kela olmayman", "ru": "❌ Не смогу", "en": "❌ Can't make it"},
+    "remind_confirmed": {
+        "uz": "👍 Siz kelishingizni tasdiqladi. Sartarosh kutadi!",
+        "ru": "👍 Вы подтвердили визит. Барбер ждёт!",
+        "en": "👍 You confirmed your visit. See you there!",
+    },
+    "remind_cancelled_customer": {
+        "uz": "Bron bekor qilindi. Keyingi safar ko'rishguncha! ✌️",
+        "ru": "Запись отменена. До следующего раза! ✌️",
+        "en": "Booking cancelled. See you next time! ✌️",
     },
 }
 
@@ -68,6 +92,61 @@ async def notify_barber_new_booking(
         time=time_slot,
     )
     await _send(barber_telegram_id, text)
+
+
+async def notify_barber_customer_cancelled(
+    barber_telegram_id: int,
+    customer_name: str,
+    customer_phone: str,
+    booking_date: str,
+    time_slot: str,
+    barber_language: str = "uz",
+) -> None:
+    lang = barber_language if barber_language in ("uz", "ru", "en") else "uz"
+    text = _MESSAGES["customer_cancelled"][lang].format(
+        name=customer_name,
+        phone=customer_phone,
+        date=booking_date,
+        time=time_slot,
+    )
+    await _send(barber_telegram_id, text)
+
+
+async def send_reminder(
+    customer_telegram_id: int,
+    booking_id: int,
+    shop_name: str,
+    shop_address: str,
+    time_slot: str,
+    customer_language: str = "uz",
+) -> None:
+    """Send a 5-hour reminder with Yes/No inline buttons."""
+    lang = customer_language if customer_language in ("uz", "ru", "en") else "uz"
+    text = _MESSAGES["reminder"][lang].format(
+        shop=shop_name,
+        address=shop_address,
+        time=time_slot,
+    )
+    yes_text = _MESSAGES["remind_yes_btn"][lang]
+    no_text  = _MESSAGES["remind_no_btn"][lang]
+    url = TELEGRAM_API.format(token=settings.BOT_TOKEN)
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(url, json={
+                "chat_id": customer_telegram_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "reply_markup": {
+                    "inline_keyboard": [[
+                        {"text": yes_text, "callback_data": f"remind_yes:{booking_id}"},
+                        {"text": no_text,  "callback_data": f"remind_no:{booking_id}"},
+                    ]]
+                },
+            })
+            if resp.status_code != 200:
+                logger.warning("Reminder sendMessage failed: %s", resp.text)
+    except Exception as e:
+        logger.warning("Failed to send reminder: %s", e)
 
 
 async def notify_customer_status_change(

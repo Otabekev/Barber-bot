@@ -11,7 +11,11 @@ from app.models.user import User
 from app.models.shop import Shop
 from app.models.booking import Booking
 from app.schemas.booking import BookingCreate, BookingStatusUpdate, BookingOut, VALID_STATUSES
-from app.services.notifications import notify_barber_new_booking, notify_customer_status_change
+from app.services.notifications import (
+    notify_barber_new_booking,
+    notify_barber_customer_cancelled,
+    notify_customer_status_change,
+)
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -170,4 +174,21 @@ async def cancel_my_booking(
     booking.status = "cancelled"
     await db.commit()
     await db.refresh(booking)
+
+    # Notify the barber that their customer cancelled
+    shop_result = await db.execute(select(Shop).where(Shop.id == booking.shop_id))
+    shop = shop_result.scalar_one_or_none()
+    if shop:
+        owner_result = await db.execute(select(User).where(User.id == shop.owner_id))
+        owner = owner_result.scalar_one_or_none()
+        if owner:
+            asyncio.create_task(notify_barber_customer_cancelled(
+                barber_telegram_id=owner.telegram_id,
+                customer_name=booking.customer_name,
+                customer_phone=booking.customer_phone,
+                booking_date=str(booking.booking_date),
+                time_slot=booking.time_slot,
+                barber_language=owner.language,
+            ))
+
     return booking

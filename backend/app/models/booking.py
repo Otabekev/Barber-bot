@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -20,6 +20,7 @@ class Booking(Base):
     status = Column(String(20), default="pending")  # pending | confirmed | cancelled | completed
     customer_name = Column(String(255), nullable=False)
     customer_phone = Column(String(20), nullable=False)
+    reminder_sent = Column(Boolean, default=False, nullable=False)
 
     customer = relationship("User", foreign_keys=[customer_id])
     shop = relationship("Shop", back_populates="bookings")

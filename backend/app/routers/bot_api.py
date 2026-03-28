@@ -15,6 +15,7 @@ from app.models.user import User
 from app.models.shop import Shop
 from app.models.booking import Booking
 from app.schemas.shop import ShopOut
+from app.services.notifications import notify_barber_customer_cancelled
 
 router = APIRouter(prefix="/bot", tags=["bot"])
 
@@ -105,3 +106,60 @@ async def barber_today_schedule(
             for b in bookings
         ],
     }
+
+
+@router.post("/cancel-from-reminder")
+async def cancel_from_reminder(
+    body: dict,
+    _: None = Depends(_verify_bot_secret),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Bot calls this when user presses 'Can't make it' on the reminder message.
+    Cancels the booking and notifies the barber.
+    """
+    booking_id = body.get("booking_id")
+    telegram_id = body.get("telegram_id")
+    if not booking_id or not telegram_id:
+        raise HTTPException(status_code=400, detail="booking_id and telegram_id required")
+
+    # Find booking owned by this customer
+    user_result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    booking_result = await db.execute(
+        select(Booking).where(
+            Booking.id == booking_id,
+            Booking.customer_id == user.id,
+        )
+    )
+    booking = booking_result.scalar_one_or_none()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.status in ("cancelled", "completed"):
+        return {"ok": True, "already": True}
+
+    booking.status = "cancelled"
+    await db.commit()
+    await db.refresh(booking)
+
+    # Notify barber
+    shop_result = await db.execute(select(Shop).where(Shop.id == booking.shop_id))
+    shop = shop_result.scalar_one_or_none()
+    if shop:
+        owner_result = await db.execute(select(User).where(User.id == shop.owner_id))
+        owner = owner_result.scalar_one_or_none()
+        if owner:
+            import asyncio
+            asyncio.create_task(notify_barber_customer_cancelled(
+                barber_telegram_id=owner.telegram_id,
+                customer_name=booking.customer_name,
+                customer_phone=booking.customer_phone,
+                booking_date=str(booking.booking_date),
+                time_slot=booking.time_slot,
+                barber_language=owner.language,
+            ))
+
+    return {"ok": True, "already": False}

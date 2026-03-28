@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
 from app.routers import auth, shops, schedules, bookings, slots
 from app.routers import admin, bot_api
+from app.services.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,7 +19,9 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    start_scheduler()
     yield
+    stop_scheduler()
 
 
 app = FastAPI(

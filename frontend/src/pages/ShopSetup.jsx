@@ -5,7 +5,24 @@ import { toast } from "../components/Layout";
 
 const SLOT_OPTIONS = [15, 20, 30, 45, 60];
 
-const EMPTY = { name: "", city: "", address: "", phone: "", slot_duration: 30 };
+const REGIONS = [
+  "Toshkent shahri",
+  "Toshkent viloyati",
+  "Samarqand",
+  "Buxoro",
+  "Farg'ona",
+  "Andijon",
+  "Namangan",
+  "Qashqadaryo",
+  "Surxondaryo",
+  "Xorazm",
+  "Navoiy",
+  "Jizzax",
+  "Sirdaryo",
+  "Qoraqalpog'iston",
+];
+
+const EMPTY = { name: "", region: "Toshkent shahri", city: "", address: "", phone: "", slot_duration: 30 };
 
 export default function ShopSetup() {
   const { shop, setShop } = useStore();
@@ -17,6 +34,7 @@ export default function ShopSetup() {
     if (shop) {
       setForm({
         name: shop.name,
+        region: shop.region ?? "Toshkent shahri",
         city: shop.city,
         address: shop.address,
         phone: shop.phone,
@@ -81,6 +99,19 @@ export default function ShopSetup() {
               onChange={(e) => set("name", e.target.value)}
             />
             {errors.name && <p style={{ color: "#ff3b30", fontSize: 12, marginTop: 4 }}>{errors.name}</p>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Region</label>
+            <select
+              className="form-input form-select"
+              value={form.region}
+              onChange={(e) => set("region", e.target.value)}
+            >
+              {REGIONS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">

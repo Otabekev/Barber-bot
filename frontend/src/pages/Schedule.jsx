@@ -75,20 +75,26 @@ export default function Schedule() {
 
       <div className="card">
         {rows.map((row, idx) => (
-          <div key={row.day_of_week} className="day-row">
-            <span className="day-name">{DAYS[row.day_of_week]}</span>
+          <div key={row.day_of_week} className="day-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 0 }}>
+            {/* Top line: day name + toggle + "Closed" label */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 40 }}>
+              <span className="day-name">{DAYS[row.day_of_week]}</span>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={row.is_working}
+                  onChange={(e) => updateRow(idx, { is_working: e.target.checked })}
+                />
+                <span className="toggle-slider" />
+              </label>
+              {!row.is_working && (
+                <span style={{ color: "var(--hint)", fontSize: 13 }}>Yopiq / Closed</span>
+              )}
+            </div>
 
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={row.is_working}
-                onChange={(e) => updateRow(idx, { is_working: e.target.checked })}
-              />
-              <span className="toggle-slider" />
-            </label>
-
-            {row.is_working ? (
-              <div className="time-inputs">
+            {/* Bottom line: time inputs — only when working */}
+            {row.is_working && (
+              <div className="time-inputs" style={{ marginTop: 8, marginBottom: 4 }}>
                 <input
                   type="time"
                   value={row.open_time}
@@ -101,8 +107,6 @@ export default function Schedule() {
                   onChange={(e) => updateRow(idx, { close_time: e.target.value })}
                 />
               </div>
-            ) : (
-              <span style={{ color: "var(--hint)", fontSize: 13, flex: 1 }}>Closed</span>
             )}
           </div>
         ))}

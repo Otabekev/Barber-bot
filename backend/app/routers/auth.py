@@ -64,9 +64,10 @@ async def telegram_auth(
         user = User(telegram_id=telegram_id, full_name=full_name, language=language)
         db.add(user)
     else:
-        logger.info("Existing user — updating name/language")
+        logger.info("Existing user — updating name only (keeping user-chosen language)")
         user.full_name = full_name
-        user.language = language
+        # Do NOT overwrite language — user may have chosen it in the bot.
+        # Telegram's language_code reflects the phone's UI language, not the user's preference.
 
     await db.commit()
     await db.refresh(user)

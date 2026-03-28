@@ -105,6 +105,31 @@ async def handle_region_pick(callback: CallbackQuery, backend: BackendClient, mi
     await callback.answer()
 
 
+@router.callback_query(F.data.startswith("remind_yes:"))
+async def handle_remind_yes(callback: CallbackQuery):
+    """User confirmed they're coming — just acknowledge, no cancellation."""
+    lang = get_lang(callback.from_user.id)
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(t("remind_confirmed", lang))
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("remind_no:"))
+async def handle_remind_no(callback: CallbackQuery, backend: BackendClient):
+    """User said they can't come — cancel the booking via backend."""
+    lang = get_lang(callback.from_user.id)
+    booking_id = int(callback.data.split(":")[1])
+
+    result = await backend.cancel_from_reminder(
+        booking_id=booking_id,
+        telegram_id=callback.from_user.id,
+    )
+
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(t("remind_cancelled_customer", lang))
+    await callback.answer()
+
+
 @router.callback_query(F.data == "menu:back")
 async def handle_back(callback: CallbackQuery):
     from bot.handlers.start import main_menu_keyboard

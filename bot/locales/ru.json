@@ -18,5 +18,7 @@
   "today_not_registered": "❌ Вы не зарегистрированы. Нажмите /start.",
   "status_pending": "⏳",
   "status_confirmed": "✅",
-  "back": "⬅️ Назад"
+  "back": "⬅️ Назад",
+  "remind_confirmed": "👍 Вы подтвердили визит. Барбер ждёт!",
+  "remind_cancelled_customer": "Запись отменена. До следующего раза! ✌️"
 }
