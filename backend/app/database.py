@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
@@ -24,3 +25,15 @@ async def init_db():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Live migration: widen telegram_id from INTEGER → BIGINT so users with
+    # IDs above 2 147 483 647 (all accounts created after ~2019) can auth.
+    # Safe to run repeatedly — PostgreSQL is a no-op if already BIGINT;
+    # SQLite doesn't support ALTER TYPE so the except swallows that silently.
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT")
+            )
+    except Exception:
+        pass

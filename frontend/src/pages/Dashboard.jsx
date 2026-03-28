@@ -40,15 +40,24 @@ export default function Dashboard() {
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>{user?.full_name}</h1>
       </div>
 
-      {/* No shop yet */}
-      {!shop && (
-        <div className="card" style={{ textAlign: "center", padding: "32px 16px" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>✂️</div>
-          <h2 style={{ marginBottom: 8 }}>Set up your shop</h2>
-          <p style={{ color: "var(--hint)", marginBottom: 20, fontSize: 14 }}>
-            Create your barber shop to start accepting bookings.
-          </p>
-          <Link to="/shop" className="btn btn-primary">Create Shop</Link>
+      {/* No shop yet — show role-appropriate card */}
+      {!shop && !user?.is_admin && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="card" style={{ textAlign: "center", padding: "28px 16px" }}>
+            <div style={{ fontSize: 44, marginBottom: 10 }}>📋</div>
+            <h2 style={{ marginBottom: 8, fontSize: 18 }}>Mening bronlarim</h2>
+            <p style={{ color: "var(--hint)", marginBottom: 16, fontSize: 14 }}>
+              Sartarosh topish uchun botdan foydalaning.
+            </p>
+            <Link to="/my-bookings" className="btn btn-primary">Bronlarni ko'rish</Link>
+          </div>
+          <div className="card" style={{ textAlign: "center", padding: "20px 16px" }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>✂️</div>
+            <p style={{ color: "var(--hint)", marginBottom: 12, fontSize: 14 }}>
+              Sartaroshxona egasisiz?
+            </p>
+            <Link to="/shop" className="btn btn-secondary" style={{ fontSize: 13 }}>Sartaroshxona ochish</Link>
+          </div>
         </div>
       )}
 

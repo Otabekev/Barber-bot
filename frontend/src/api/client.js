@@ -16,7 +16,10 @@ const api = axios.create({ baseURL: BASE_URL });
 // ── Request interceptor: attach JWT ─────────────────────────────────────────
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
-  if (token && token !== "__dev_no_token__") {
+  // Never send a stale token to auth endpoints — it belongs to a different user
+  // and would confuse the server even though those routes don't require auth.
+  const isAuthRoute = config.url === "/auth/telegram" || config.url === "/auth/dev-login";
+  if (token && token !== "__dev_no_token__" && !isAuthRoute) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   if (import.meta.env.DEV) {
@@ -38,9 +41,12 @@ api.interceptors.response.use(
     const url = err.config?.url;
     console.warn(`[API] ← ${status} ${url}`, err.response?.data?.detail || err.message);
 
-    // Only force-reload on 401 in real Telegram mode (not dev bypass — would loop)
-    if (status === 401 && !DEV_BYPASS) {
-      console.warn("[API] 401 received — clearing token and reloading");
+    // Reload on 401 from protected routes only — NOT from /auth/* endpoints.
+    // If /auth/telegram itself returns 401 (e.g. HMAC mismatch), let App.jsx
+    // catch block handle it; reloading here would cause an infinite reload loop.
+    const isAuthRoute = url === "/auth/telegram" || url === "/auth/dev-login";
+    if (status === 401 && !DEV_BYPASS && !isAuthRoute) {
+      console.warn("[API] 401 on protected route — clearing token and reloading");
       localStorage.removeItem("access_token");
       window.location.reload();
     }
