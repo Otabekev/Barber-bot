@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: barberdb
+      POSTGRES_USER: barber
+      POSTGRES_PASSWORD: barber123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barber"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://barber:barber123@db:5432/barberdb
+      BOT_TOKEN: ${BOT_TOKEN}
+      SECRET_KEY: ${SECRET_KEY:-local_dev_secret}
+      BOT_SECRET: ${BOT_SECRET:-local_bot_secret}
+      MINI_APP_URL: ${MINI_APP_URL:-http://localhost:5173}
+      DEV_MODE: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  bot:
+    build: ./bot
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      BACKEND_URL: http://backend:8000
+      BOT_SECRET: ${BOT_SECRET:-local_bot_secret}
+      MINI_APP_URL: ${MINI_APP_URL:-http://localhost:5173}
+    depends_on:
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8000/api
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

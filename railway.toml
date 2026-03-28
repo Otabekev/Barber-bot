@@ -1,0 +1,33 @@
+[build]
+builder = "NIXPACKS"
+
+# Railway reads each service's config from its own section.
+# We have 3 services: backend, bot, frontend.
+# Each one points to a subdirectory with a Dockerfile.
+
+[[services]]
+name = "backend"
+source = "backend"
+[services.build]
+dockerfilePath = "Dockerfile"
+[services.deploy]
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"
+
+[[services]]
+name = "bot"
+source = "bot"
+[services.build]
+dockerfilePath = "Dockerfile"
+[services.deploy]
+startCommand = "python -m bot.main"
+restartPolicyType = "ALWAYS"
+
+[[services]]
+name = "frontend"
+source = "frontend"
+[services.build]
+dockerfilePath = "Dockerfile"
+[services.deploy]
+startCommand = "nginx -g 'daemon off;'"

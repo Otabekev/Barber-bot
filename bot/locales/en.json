@@ -1,0 +1,22 @@
+{
+  "choose_language": "🇺🇿 Tilni tanlang / 🇷🇺 Выберите язык / 🇬🇧 Choose language",
+  "language_set": "Language saved! Continuing in English.",
+  "main_menu": "Welcome, {name}! 👋\n\nWhat would you like to do?",
+  "find_barber": "💈 Find a barber",
+  "register_shop": "🏪 Register my barbershop",
+  "choose_region": "📍 Choose your region:",
+  "shops_in_region": "📋 Barbershops in <b>{region}</b>:\n\nSelect one:",
+  "no_shops": "😔 No barbershops registered in this region yet.\n\nCheck back soon!",
+  "shop_card": "✂️ <b>{name}</b>\n📍 {city}, {address}\n📞 {phone}",
+  "book_button": "📅 Book now",
+  "open_app_button": "🏪 Manage my barbershop",
+  "register_button": "📝 Register",
+  "today_header": "📅 <b>Today's bookings</b> ({date})\n<b>{shop}</b>\n\n",
+  "today_booking": "{time} — {name} ({phone}) {status_icon}\n",
+  "today_empty": "📭 No bookings today.",
+  "today_no_shop": "❌ No shop found. Please register first.",
+  "today_not_registered": "❌ You are not registered. Press /start.",
+  "status_pending": "⏳",
+  "status_confirmed": "✅",
+  "back": "⬅️ Back"
+}

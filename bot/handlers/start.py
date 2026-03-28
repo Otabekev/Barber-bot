@@ -1,0 +1,68 @@
+from aiogram import Router, F
+from aiogram.filters import CommandStart
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+
+from bot.i18n import t
+from bot.api_client import BackendClient
+
+router = Router()
+
+# User language cache: {telegram_id: "uz"|"ru"|"en"}
+_lang_cache: dict[int, str] = {}
+
+
+def get_lang(telegram_id: int) -> str:
+    return _lang_cache.get(telegram_id, "uz")
+
+
+def set_lang(telegram_id: int, lang: str):
+    _lang_cache[telegram_id] = lang
+
+
+def _language_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🇺🇿 O'zbek", callback_data="lang:uz"),
+            InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang:ru"),
+            InlineKeyboardButton(text="🇬🇧 English", callback_data="lang:en"),
+        ]
+    ])
+
+
+def main_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=t("find_barber", lang), callback_data="menu:find_barber")],
+        [InlineKeyboardButton(text=t("register_shop", lang), callback_data="menu:register_shop")],
+    ])
+
+
+@router.message(CommandStart())
+async def cmd_start(message: Message):
+    await message.answer(
+        t("choose_language", "uz"),
+        reply_markup=_language_keyboard(),
+    )
+
+
+@router.callback_query(F.data.startswith("lang:"))
+async def handle_language_pick(callback: CallbackQuery, backend: BackendClient):
+    lang = callback.data.split(":")[1]
+    user = callback.from_user
+    set_lang(user.id, lang)
+
+    # Save to backend (fire and forget — don't block the response)
+    await backend.set_language(
+        telegram_id=user.id,
+        language=lang,
+        full_name=user.full_name or "",
+    )
+
+    await callback.message.edit_text(
+        t("language_set", lang),
+    )
+    await callback.message.answer(
+        t("main_menu", lang, name=user.first_name or user.full_name or ""),
+        reply_markup=main_menu_keyboard(lang),
+        parse_mode="HTML",
+    )
+    await callback.answer()
