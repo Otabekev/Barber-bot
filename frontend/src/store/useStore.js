@@ -17,6 +17,7 @@ const useStore = create((set, get) => ({
     set({ token: null, user: null });
   },
   setAuthLoading: (v) => set({ isAuthLoading: v }),
+  setUserLang: (lang) => set((s) => ({ user: s.user ? { ...s.user, language: lang } : s.user })),
 
   // ── Shop state ──────────────────────────────────────────────────────────
   shop: null,

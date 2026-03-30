@@ -19,11 +19,14 @@ class BackendClient:
             )
             return resp.status_code == 200
 
-    async def get_shops(self, region: str) -> List[dict]:
+    async def get_shops(self, region: str, district: Optional[str] = None) -> List[dict]:
+        params: dict = {"region": region}
+        if district:
+            params["district"] = district
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(
                 f"{self._base}/api/bot/shops",
-                params={"region": region},
+                params=params,
                 headers=self._headers,
             )
             if resp.status_code == 200:

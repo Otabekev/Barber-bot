@@ -119,7 +119,7 @@ html, body, #root {
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.btn-primary { background: var(--btn); color: var(--btn-text); width: 100%; }
+.btn-primary { background: linear-gradient(135deg, var(--btn) 0%, color-mix(in srgb, var(--btn) 70%, #6366f1) 100%); color: var(--btn-text); width: 100%; }
 .btn-success { background: #34c759; color: #fff; }
 .btn-danger  { background: #ff3b30; color: #fff; }
 .btn-ghost   { background: transparent; color: var(--btn); border: 1.5px solid var(--btn); }
@@ -140,17 +140,20 @@ html, body, #root {
 
 .form-input {
   width: 100%;
-  padding: 11px 14px;
+  padding: 13px 14px;
+  min-height: 48px;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--border);
   background: var(--bg);
   color: var(--text);
   font-size: 15px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.form-input:focus { border-color: var(--btn); }
+.form-input:focus { border-color: var(--btn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--btn) 20%, transparent); }
+
+/* removed — replaced above */
 .form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
 
 /* ── Status badges ─────────────────────────────────────────────────────── */
@@ -211,13 +214,14 @@ html, body, #root {
   align-items: center;
   gap: 12px;
   padding: 12px 0;
+  min-height: 52px;
   border-bottom: 1px solid var(--border);
 }
 
 .day-row:last-child { border-bottom: none; }
 
 .day-name {
-  width: 36px;
+  min-width: 100px;
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
@@ -251,7 +255,10 @@ html, body, #root {
   border-radius: var(--radius);
   padding: 14px;
   margin-bottom: 10px;
+  transition: box-shadow 0.2s;
 }
+
+.booking-card:active { box-shadow: var(--shadow); }
 
 .booking-header {
   display: flex;
@@ -331,11 +338,12 @@ html, body, #root {
   border-radius: var(--radius);
   padding: 14px 10px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
 
 .stat-value {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 800;
   color: var(--btn);
 }
 

@@ -1,25 +1,6 @@
-from pydantic import BaseModel, field_validator, model_validator
-from typing import Optional
+"""Shared constants for the bot — mirrors frontend/src/districts.js."""
 
-UZBEKISTAN_REGIONS = [
-    "Toshkent shahri",
-    "Toshkent viloyati",
-    "Samarqand",
-    "Buxoro",
-    "Farg'ona",
-    "Andijon",
-    "Namangan",
-    "Qashqadaryo",
-    "Surxondaryo",
-    "Xorazm",
-    "Navoiy",
-    "Jizzax",
-    "Sirdaryo",
-    "Qoraqalpog'iston",
-]
-
-
-UZBEKISTAN_DISTRICTS: dict[str, list[str]] = {
+DISTRICTS: dict[str, list[str]] = {
     "Toshkent shahri": [
         "Bektemir", "Chilonzor", "Mirzo Ulug'bek", "Mirobod",
         "Sergeli", "Shayxontohur", "Uchtepa", "Olmazor",
@@ -89,72 +70,3 @@ UZBEKISTAN_DISTRICTS: dict[str, list[str]] = {
         "Qorao'zak", "Shumanay", "Taxtako'pir", "To'rtko'l", "Xo'jayli",
     ],
 }
-
-
-class ShopCreate(BaseModel):
-    name: str
-    region: str = "Toshkent shahri"
-    city: str
-    address: str
-    phone: str
-    slot_duration: int = 30
-    description: Optional[str] = None
-    district: Optional[str] = None
-
-    @field_validator("slot_duration")
-    @classmethod
-    def validate_slot_duration(cls, v: int) -> int:
-        if v not in (15, 20, 30, 45, 60):
-            raise ValueError("slot_duration must be one of 15, 20, 30, 45, 60")
-        return v
-
-    @field_validator("region")
-    @classmethod
-    def validate_region(cls, v: str) -> str:
-        if v not in UZBEKISTAN_REGIONS:
-            raise ValueError(f"region must be one of {UZBEKISTAN_REGIONS}")
-        return v
-
-
-class ShopUpdate(BaseModel):
-    name: Optional[str] = None
-    region: Optional[str] = None
-    city: Optional[str] = None
-    address: Optional[str] = None
-    phone: Optional[str] = None
-    slot_duration: Optional[int] = None
-    is_active: Optional[bool] = None
-    description: Optional[str] = None
-    district: Optional[str] = None
-
-    @field_validator("slot_duration")
-    @classmethod
-    def validate_slot_duration(cls, v: Optional[int]) -> Optional[int]:
-        if v is not None and v not in (15, 20, 30, 45, 60):
-            raise ValueError("slot_duration must be one of 15, 20, 30, 45, 60")
-        return v
-
-    @field_validator("region")
-    @classmethod
-    def validate_region(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v not in UZBEKISTAN_REGIONS:
-            raise ValueError(f"region must be one of {UZBEKISTAN_REGIONS}")
-        return v
-
-
-class ShopOut(BaseModel):
-    id: int
-    owner_id: int
-    name: str
-    region: str
-    city: str
-    address: str
-    phone: str
-    slot_duration: int
-    is_approved: bool
-    is_active: bool
-    description: Optional[str] = None
-    has_photo: bool = False
-    district: Optional[str] = None
-
-    model_config = {"from_attributes": True}

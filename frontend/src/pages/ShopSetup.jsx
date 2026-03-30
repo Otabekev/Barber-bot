@@ -6,17 +6,14 @@ import {
 } from "../api/client";
 import { toast } from "../components/Layout";
 import { t } from "../i18n";
+import DISTRICTS from "../districts";
 
 const SLOT_OPTIONS = [15, 20, 30, 45, 60];
 
-const REGIONS = [
-  "Toshkent shahri", "Toshkent viloyati", "Samarqand", "Buxoro",
-  "Farg'ona", "Andijon", "Namangan", "Qashqadaryo", "Surxondaryo",
-  "Xorazm", "Navoiy", "Jizzax", "Sirdaryo", "Qoraqalpog'iston",
-];
+const REGIONS = Object.keys(DISTRICTS);
 
 const EMPTY = {
-  name: "", region: "Toshkent shahri", city: "", address: "",
+  name: "", region: "Toshkent shahri", district: "", city: "", address: "",
   phone: "", slot_duration: 30, description: "",
 };
 
@@ -35,6 +32,7 @@ export default function ShopSetup() {
       setForm({
         name: shop.name,
         region: shop.region ?? "Toshkent shahri",
+        district: shop.district || "",
         city: shop.city,
         address: shop.address,
         phone: shop.phone,
@@ -224,8 +222,26 @@ export default function ShopSetup() {
 
           <div className="form-group">
             <label className="form-label">{t("region_label", lang)}</label>
-            <select className="form-input form-select" value={form.region} onChange={(e) => set("region", e.target.value)}>
+            <select
+              className="form-input form-select"
+              value={form.region}
+              onChange={(e) => { set("region", e.target.value); set("district", ""); }}
+            >
               {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">{t("district_label", lang)}</label>
+            <select
+              className="form-input form-select"
+              value={form.district}
+              onChange={(e) => set("district", e.target.value)}
+            >
+              <option value="">{t("district_any", lang)}</option>
+              {(DISTRICTS[form.region] || []).map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
             </select>
           </div>
 

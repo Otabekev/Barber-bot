@@ -49,19 +49,34 @@ async def set_language(
     return {"ok": True}
 
 
+@router.get("/districts")
+async def get_districts(
+    region: str,
+    _: None = Depends(_verify_bot_secret),
+):
+    """Bot calls this to get districts for a given region."""
+    from app.schemas.shop import UZBEKISTAN_DISTRICTS
+    districts = UZBEKISTAN_DISTRICTS.get(region, [])
+    return {"region": region, "districts": districts}
+
+
 @router.get("/shops", response_model=List[ShopOut])
 async def get_shops_by_region(
     region: str,
+    district: str | None = None,
     _: None = Depends(_verify_bot_secret),
     db: AsyncSession = Depends(get_db),
 ):
-    """Bot calls this to get approved shops in a region."""
+    """Bot calls this to get approved shops in a region (optionally filtered by district)."""
+    conditions = [
+        Shop.region == region,
+        Shop.is_approved == True,
+        Shop.is_active == True,
+    ]
+    if district:
+        conditions.append(Shop.district == district)
     result = await db.execute(
-        select(Shop).where(
-            Shop.region == region,
-            Shop.is_approved == True,
-            Shop.is_active == True,
-        ).order_by(Shop.name)
+        select(Shop).where(*conditions).order_by(Shop.name)
     )
     return result.scalars().all()
 

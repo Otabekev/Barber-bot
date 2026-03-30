@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { getAvailableSlots, createBooking } from "../api/client";
 import { toast } from "../components/Layout";
@@ -41,8 +41,9 @@ export default function BookingFlow() {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+998");
   const [submitting, setSubmitting] = useState(false);
+  const nameRef = useRef(null);
 
   useEffect(() => {
     if (!shopId) navigate("/", { replace: true });
@@ -70,6 +71,7 @@ export default function BookingFlow() {
   function pickSlot(slot) {
     setSelectedSlot(slot);
     setStep(STEPS.FORM);
+    setTimeout(() => nameRef.current?.focus(), 50);
   }
 
   async function submitBooking(e) {
@@ -97,17 +99,39 @@ export default function BookingFlow() {
 
   if (step === STEPS.DONE) {
     return (
-      <div style={{ padding: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
-        <h2>{t("book_done_title", lang)}</h2>
-        <p style={{ color: "var(--hint)", margin: "8px 0 24px" }}>
-          {fmtDate(selectedDate)}, {selectedSlot}
-        </p>
-        <p style={{ color: "var(--hint)", fontSize: 14, marginBottom: 24 }}>
+      <div style={{ padding: "32px 20px", textAlign: "center" }}>
+        <div style={{ fontSize: 72, marginBottom: 8, lineHeight: 1 }}>✅</div>
+        <h2 style={{ fontSize: 24, fontWeight: 800, margin: "16px 0 8px" }}>
+          {t("book_done_title", lang)}
+        </h2>
+        <div
+          style={{
+            background: "linear-gradient(135deg, var(--btn), #6366f1)",
+            borderRadius: 16,
+            padding: "20px 24px",
+            margin: "20px 0 24px",
+            color: "#fff",
+          }}
+        >
+          <div style={{ fontSize: 28, fontWeight: 800 }}>{selectedSlot}</div>
+          <div style={{ fontSize: 15, opacity: 0.9, marginTop: 4 }}>{fmtDate(selectedDate)}</div>
+        </div>
+        <p style={{ color: "var(--hint)", fontSize: 14, marginBottom: 28 }}>
           {t("book_done_hint", lang)}
         </p>
-        <button className="btn btn-primary" onClick={() => navigate("/my-bookings")}>
+        <button
+          className="btn btn-primary"
+          style={{ width: "100%", minHeight: 52, fontSize: 16, fontWeight: 700 }}
+          onClick={() => navigate("/my-bookings")}
+        >
           {t("book_my_bookings_btn", lang)}
+        </button>
+        <button
+          className="btn btn-ghost"
+          style={{ width: "100%", marginTop: 10 }}
+          onClick={() => navigate("/")}
+        >
+          {t("book_done_home", lang)}
         </button>
       </div>
     );
@@ -197,44 +221,58 @@ export default function BookingFlow() {
             </button>
             <h2 style={{ margin: 0 }}>{t("book_your_info", lang)}</h2>
           </div>
+
+          {/* Summary card */}
           <div
             style={{
-              background: "var(--card)",
-              borderRadius: 12,
-              padding: "12px 16px",
-              marginBottom: 20,
-              color: "var(--hint)",
-              fontSize: 14,
+              background: "linear-gradient(135deg, var(--btn), #6366f1)",
+              borderRadius: 16,
+              padding: "16px 20px",
+              marginBottom: 24,
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
             }}
           >
-            {fmtDate(selectedDate)} — {selectedSlot}
+            <div style={{ fontSize: 32 }}>📅</div>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.1 }}>{selectedSlot}</div>
+              <div style={{ fontSize: 14, opacity: 0.9, marginTop: 3 }}>{fmtDate(selectedDate)}</div>
+            </div>
           </div>
+
           <form onSubmit={submitBooking}>
             <div className="form-group">
-              <label>{t("book_name_label", lang)}</label>
+              <label className="form-label">{t("book_name_label", lang)}</label>
               <input
-                className="input"
+                ref={nameRef}
+                className="form-input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t("book_name_placeholder", lang)}
+                autoComplete="name"
                 required
+                style={{ minHeight: 52, fontSize: 16 }}
               />
             </div>
             <div className="form-group">
-              <label>{t("book_phone_label", lang)}</label>
+              <label className="form-label">{t("book_phone_label", lang)}</label>
               <input
-                className="input"
+                className="form-input"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder={t("book_phone_placeholder", lang)}
-                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 required
+                style={{ minHeight: 52, fontSize: 16 }}
               />
             </div>
             <button
               type="submit"
               className="btn btn-primary"
-              style={{ width: "100%", marginTop: 8 }}
+              style={{ width: "100%", minHeight: 52, fontSize: 16, fontWeight: 700, marginTop: 8 }}
               disabled={submitting}
             >
               {submitting ? t("book_submitting", lang) : t("book_submit", lang)}

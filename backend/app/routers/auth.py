@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.auth import validate_init_data, create_access_token
+from app.deps import get_current_user
 from app.models.user import User
 from app.schemas.user import UserOut
 from app.config import settings
@@ -75,6 +76,27 @@ async def telegram_auth(
     token = create_access_token(telegram_id)
     logger.info("Auth complete for telegram_id=%d", telegram_id)
     return AuthResponse(access_token=token, user=UserOut.model_validate(user))
+
+
+# ── Language update ───────────────────────────────────────────────────────────
+
+class LanguagePayload(BaseModel):
+    language: str
+
+
+@router.patch("/me/language", response_model=UserOut)
+async def update_my_language(
+    payload: LanguagePayload,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Authenticated: update the current user's preferred language."""
+    if payload.language not in ("uz", "ru", "en"):
+        raise HTTPException(status_code=400, detail="language must be 'uz', 'ru', or 'en'")
+    current_user.language = payload.language
+    await db.commit()
+    await db.refresh(current_user)
+    return UserOut.model_validate(current_user)
 
 
 # ── Dev-only login ────────────────────────────────────────────────────────────

@@ -5,6 +5,8 @@
   "find_barber": "💈 Find a barber",
   "register_shop": "🏪 Register my barbershop",
   "choose_region": "📍 Choose your region:",
+  "choose_district": "📍 <b>{region}</b>\n\nChoose your district:",
+  "all_districts": "🗺 Entire region",
   "shops_in_region": "📋 Barbershops in <b>{region}</b>:\n\nSelect one:",
   "no_shops": "😔 No barbershops registered in this region yet.\n\nCheck back soon!",
   "shop_card": "✂️ <b>{name}</b>\n📍 {city}, {address}\n📞 {phone}",

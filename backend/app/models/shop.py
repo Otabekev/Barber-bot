@@ -18,6 +18,8 @@ class Shop(Base):
     is_approved = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
 
+    district = Column(String(100), nullable=True)
+
     # Premium profile fields
     description = Column(Text, nullable=True)
     has_photo = Column(Boolean, default=False)

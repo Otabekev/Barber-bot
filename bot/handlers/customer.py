@@ -10,6 +10,7 @@ from aiogram.types import (
 from bot.i18n import t
 from bot.api_client import BackendClient
 from bot.handlers.start import get_lang
+from bot.constants import DISTRICTS
 
 router = Router()
 
@@ -59,29 +60,75 @@ async def handle_find_barber(callback: CallbackQuery):
     await callback.answer()
 
 
+def _districts_keyboard(region: str, lang: str) -> InlineKeyboardMarkup:
+    """2-column grid of districts for the given region."""
+    districts = DISTRICTS.get(region, [])
+    rows = []
+    for i in range(0, len(districts), 2):
+        row = [InlineKeyboardButton(
+            text=districts[i],
+            callback_data=f"district:{region}:{districts[i]}",
+        )]
+        if i + 1 < len(districts):
+            row.append(InlineKeyboardButton(
+                text=districts[i + 1],
+                callback_data=f"district:{region}:{districts[i + 1]}",
+            ))
+        rows.append(row)
+    # "All in region" option + back
+    rows.append([InlineKeyboardButton(
+        text=t("all_districts", lang),
+        callback_data=f"district:{region}:__all__",
+    )])
+    rows.append([InlineKeyboardButton(text=t("back", lang), callback_data="menu:find_barber")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 @router.callback_query(F.data.startswith("region:"))
-async def handle_region_pick(callback: CallbackQuery, backend: BackendClient, mini_app_url: str):
+async def handle_region_pick(callback: CallbackQuery):
     region = callback.data[len("region:"):]
     lang = get_lang(callback.from_user.id)
+    await callback.message.edit_text(
+        t("choose_district", lang, region=region),
+        reply_markup=_districts_keyboard(region, lang),
+        parse_mode="HTML",
+    )
+    await callback.answer()
 
-    shops = await backend.get_shops(region)
 
+@router.callback_query(F.data.startswith("district:"))
+async def handle_district_pick(callback: CallbackQuery, backend: BackendClient, mini_app_url: str):
+    parts = callback.data.split(":", 2)  # ["district", region, district_or_all]
+    region = parts[1]
+    district_raw = parts[2] if len(parts) > 2 else "__all__"
+    district = None if district_raw == "__all__" else district_raw
+    lang = get_lang(callback.from_user.id)
+    await _show_shops(callback, region=region, district=district, lang=lang,
+                      back_cb=f"region:{region}", backend=backend, mini_app_url=mini_app_url)
+    await callback.answer()
+
+
+async def _show_shops(callback: CallbackQuery, region: str, district, lang: str,
+                      back_cb: str, backend: BackendClient, mini_app_url: str):
+    """Fetch and display shop cards. district=None means whole region."""
+    shops = await backend.get_shops(region, district)
+
+    location_label = district or region
     if not shops:
         await callback.message.edit_text(
             t("no_shops", lang),
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=t("back", lang), callback_data="menu:find_barber")]
+                [InlineKeyboardButton(text=t("back", lang), callback_data=back_cb)]
             ]),
             parse_mode="HTML",
         )
-        await callback.answer()
         return
 
     await callback.message.edit_text(
-        t("shops_in_region", lang, region=region),
+        t("shops_in_region", lang, region=location_label),
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=t("back", lang), callback_data="menu:find_barber")]
+            [InlineKeyboardButton(text=t("back", lang), callback_data=back_cb)]
         ]),
     )
 
@@ -95,7 +142,6 @@ async def handle_region_pick(callback: CallbackQuery, backend: BackendClient, mi
             )]
         ])
 
-        # Build card text: base info + optional description
         desc = (shop.get("description") or "").strip()
         approved_mark = " ✅" if shop.get("is_approved") else ""
         card_text = t("shop_card", lang,
@@ -104,11 +150,9 @@ async def handle_region_pick(callback: CallbackQuery, backend: BackendClient, mi
                       address=shop["address"],
                       phone=shop["phone"])
         if desc:
-            # Telegram caption limit is 1024 chars — truncate safely
             card_text = card_text + f"\n\n📝 <i>{desc[:280]}</i>"
 
-        # If shop has a cover photo, send it as a photo message with caption
-        if shop.get("has_photo"):
+        if shop.get("has_photo") and backend:
             photo_bytes = await backend.get_shop_photo(shop["id"])
             if photo_bytes:
                 await callback.message.answer_photo(
@@ -117,15 +161,9 @@ async def handle_region_pick(callback: CallbackQuery, backend: BackendClient, mi
                     parse_mode="HTML",
                     reply_markup=markup,
                 )
-                continue  # skip the text fallback below
+                continue
 
-        await callback.message.answer(
-            card_text,
-            parse_mode="HTML",
-            reply_markup=markup,
-        )
-
-    await callback.answer()
+        await callback.message.answer(card_text, parse_mode="HTML", reply_markup=markup)
 
 
 @router.callback_query(F.data.startswith("remind_yes:"))

@@ -5,6 +5,8 @@
   "find_barber": "💈 Sartarosh topish",
   "register_shop": "🏪 Sartaroshxona ochish",
   "choose_region": "📍 Viloyatingizni tanlang:",
+  "choose_district": "📍 <b>{region}</b>\n\nTumaningizni tanlang:",
+  "all_districts": "🗺 Butun viloyat",
   "shops_in_region": "📋 <b>{region}</b> dagi sartaroshxonalar:\n\nBirini tanlang:",
   "no_shops": "😔 Bu viloyatda hali ro'yxatdan o'tgan sartaroshxona yo'q.\n\nKo'proq qo'shilishini kuting!",
   "shop_card": "✂️ <b>{name}</b>\n📍 {city}, {address}\n📞 {phone}",

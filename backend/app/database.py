@@ -44,6 +44,13 @@ async def init_db():
     except Exception:
         pass
 
+    # Live migration: add district column to shops if missing.
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE shops ADD COLUMN district VARCHAR(100)"))
+    except Exception:
+        pass
+
     # Live migration: add premium profile fields to shops if missing.
     for stmt in [
         "ALTER TABLE shops ADD COLUMN description TEXT",

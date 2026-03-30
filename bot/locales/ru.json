@@ -5,6 +5,8 @@
   "find_barber": "💈 Найти барбера",
   "register_shop": "🏪 Открыть барбершоп",
   "choose_region": "📍 Выберите регион:",
+  "choose_district": "📍 <b>{region}</b>\n\nВыберите район:",
+  "all_districts": "🗺 Весь регион",
   "shops_in_region": "📋 Барбершопы в <b>{region}</b>:\n\nВыберите один:",
   "no_shops": "😔 В этом регионе пока нет зарегистрированных барбершопов.\n\nЖдите новых!",
   "shop_card": "✂️ <b>{name}</b>\n📍 {city}, {address}\n📞 {phone}",

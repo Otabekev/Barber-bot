@@ -62,6 +62,9 @@ export const authTelegram = (init_data) =>
 export const authDevLogin = () =>
   api.post("/auth/dev-login").then((r) => r.data);
 
+export const updateLanguage = (language) =>
+  api.patch("/auth/me/language", { language }).then((r) => r.data);
+
 // ── Shop ─────────────────────────────────────────────────────────────────────
 export const getMyShop = () => api.get("/shops/my").then((r) => r.data);
 export const createShop = (data) => api.post("/shops/", data).then((r) => r.data);

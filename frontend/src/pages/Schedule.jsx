@@ -3,18 +3,19 @@ import { Link } from "react-router-dom";
 import useStore from "../store/useStore";
 import { getMySchedule, updateSchedule } from "../api/client";
 import { toast } from "../components/Layout";
+import { t } from "../i18n";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-const DEFAULT_SCHEDULE = DAYS.map((_, i) => ({
+// day_0 = Monday … day_6 = Sunday — keys live in locales/*.json
+const DEFAULT_SCHEDULE = Array.from({ length: 7 }, (_, i) => ({
   day_of_week: i,
   open_time: "09:00",
   close_time: "18:00",
-  is_working: i < 5,  // Mon–Fri on by default
+  is_working: i < 5,
 }));
 
 export default function Schedule() {
-  const { shop } = useStore();
+  const { user, shop } = useStore();
+  const lang = user?.language || "uz";
   const [rows, setRows] = useState(DEFAULT_SCHEDULE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -24,7 +25,6 @@ export default function Schedule() {
     getMySchedule()
       .then((data) => {
         if (data.length > 0) {
-          // Merge server data into the 7-day grid
           const map = Object.fromEntries(data.map((d) => [d.day_of_week, d]));
           setRows(
             DEFAULT_SCHEDULE.map((def) =>
@@ -46,9 +46,9 @@ export default function Schedule() {
     setSaving(true);
     try {
       await updateSchedule(rows);
-      toast("Schedule saved!");
+      toast(t("save_schedule_success", lang));
     } catch (err) {
-      toast(err.response?.data?.detail || "Save failed");
+      toast(err.response?.data?.detail || t("save_failed", lang));
     } finally {
       setSaving(false);
     }
@@ -58,27 +58,33 @@ export default function Schedule() {
     return (
       <div className="empty-state">
         <div style={{ fontSize: 36 }}>🏪</div>
-        <p>Create your shop first.</p>
-        <Link to="/shop" className="btn btn-primary" style={{ marginTop: 16 }}>Go to Shop Setup</Link>
+        <p>{t("create_shop_first", lang)}</p>
+        <Link to="/shop" className="btn btn-primary" style={{ marginTop: 16 }}>
+          {t("go_to_shop_setup", lang)}
+        </Link>
       </div>
     );
   }
 
-  if (loading) return <div className="loader">Loading schedule…</div>;
+  if (loading) return <div className="loader">{t("loading_schedule", lang)}</div>;
 
   return (
     <div>
-      <h1 className="section-title">Work Schedule</h1>
+      <h1 className="section-title">{t("schedule_title", lang)}</h1>
       <p style={{ color: "var(--hint)", fontSize: 14, marginBottom: 16 }}>
-        Set your working hours for each day of the week.
+        {t("schedule_hint", lang)}
       </p>
 
       <div className="card">
         {rows.map((row, idx) => (
-          <div key={row.day_of_week} className="day-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 0 }}>
-            {/* Top line: day name + toggle + "Closed" label */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 40 }}>
-              <span className="day-name">{DAYS[row.day_of_week]}</span>
+          <div
+            key={row.day_of_week}
+            className="day-row"
+            style={{ flexDirection: "column", alignItems: "stretch", gap: 0 }}
+          >
+            {/* Day name + toggle */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 48 }}>
+              <span className="day-name">{t(`day_${row.day_of_week}`, lang)}</span>
               <label className="toggle">
                 <input
                   type="checkbox"
@@ -88,13 +94,13 @@ export default function Schedule() {
                 <span className="toggle-slider" />
               </label>
               {!row.is_working && (
-                <span style={{ color: "var(--hint)", fontSize: 13 }}>Yopiq / Closed</span>
+                <span style={{ color: "var(--hint)", fontSize: 13 }}>{t("closed", lang)}</span>
               )}
             </div>
 
-            {/* Bottom line: time inputs — only when working */}
+            {/* Time inputs — only when working */}
             {row.is_working && (
-              <div className="time-inputs" style={{ marginTop: 8, marginBottom: 4 }}>
+              <div className="time-inputs" style={{ marginTop: 8, marginBottom: 6 }}>
                 <input
                   type="time"
                   value={row.open_time}
@@ -113,7 +119,7 @@ export default function Schedule() {
       </div>
 
       <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-        {saving ? "Saving…" : "Save Schedule"}
+        {saving ? t("saving", lang) : t("save_schedule", lang)}
       </button>
     </div>
   );
