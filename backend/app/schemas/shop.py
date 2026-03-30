@@ -26,6 +26,7 @@ class ShopCreate(BaseModel):
     address: str
     phone: str
     slot_duration: int = 30
+    description: Optional[str] = None
 
     @field_validator("slot_duration")
     @classmethod
@@ -50,6 +51,7 @@ class ShopUpdate(BaseModel):
     phone: Optional[str] = None
     slot_duration: Optional[int] = None
     is_active: Optional[bool] = None
+    description: Optional[str] = None
 
     @field_validator("slot_duration")
     @classmethod
@@ -77,5 +79,7 @@ class ShopOut(BaseModel):
     slot_duration: int
     is_approved: bool
     is_active: bool
+    description: Optional[str] = None
+    has_photo: bool = False
 
     model_config = {"from_attributes": True}

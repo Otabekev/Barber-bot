@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import undefer
 
 from app.database import get_db
 from app.deps import get_current_user
@@ -83,6 +85,54 @@ async def update_shop(
     await db.commit()
     await db.refresh(shop)
     return shop
+
+
+@router.post("/my/photo", response_model=ShopOut)
+async def upload_shop_photo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload or replace the shop's cover photo (max 3 MB)."""
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    content = await file.read()
+    if len(content) > 3 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large (max 3 MB)")
+    shop = await _get_owner_shop(current_user, db)
+    shop.photo = content
+    shop.photo_mime = file.content_type
+    shop.has_photo = True
+    await db.commit()
+    await db.refresh(shop)
+    return shop
+
+
+@router.delete("/my/photo", response_model=ShopOut)
+async def delete_shop_photo(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove the shop's cover photo."""
+    shop = await _get_owner_shop(current_user, db)
+    shop.photo = None
+    shop.photo_mime = None
+    shop.has_photo = False
+    await db.commit()
+    await db.refresh(shop)
+    return shop
+
+
+@router.get("/{shop_id}/photo")
+async def get_shop_photo(shop_id: int, db: AsyncSession = Depends(get_db)):
+    """Public: serve the shop's cover photo."""
+    result = await db.execute(
+        select(Shop).options(undefer(Shop.photo)).where(Shop.id == shop_id)
+    )
+    shop = result.scalar_one_or_none()
+    if not shop or not shop.has_photo or not shop.photo:
+        raise HTTPException(status_code=404, detail="No photo")
+    return Response(content=shop.photo, media_type=shop.photo_mime or "image/jpeg")
 
 
 @router.get("/{shop_id}/available-slots")

@@ -20,5 +20,8 @@
   "status_confirmed": "✅",
   "back": "⬅️ Back",
   "remind_confirmed": "👍 You confirmed your visit. See you there!",
-  "remind_cancelled_customer": "Booking cancelled. See you next time! ✌️"
+  "remind_cancelled_customer": "Booking cancelled. See you next time! ✌️",
+  "restart_button": "🔄 Restart",
+  "help_button": "ℹ️ How to use",
+  "help_text": "ℹ️ <b>How to use this bot:</b>\n\n👤 <b>For customers:</b>\n1. Tap «💈 Find a barber»\n2. Pick your region\n3. Choose a barbershop\n4. Tap «📅 Book now»\n5. Select a date and time, enter your name and phone\n6. You'll get a Telegram notification when the barber confirms\n\n✂️ <b>For barbers:</b>\n1. Tap «🏪 Register my barbershop»\n2. Register your barbershop\n3. Set your working hours and weekly schedule\n4. You'll get automatic notifications for new bookings\n5. /bugun — see today's bookings list\n\n🔄 To restart at any time, tap «🔄 Restart»."
 }

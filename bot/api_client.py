@@ -41,6 +41,17 @@ class BackendClient:
                 return resp.json()
             return None
 
+    async def get_shop_photo(self, shop_id: int) -> bytes | None:
+        """Fetch photo bytes for a shop from the public /shops/{id}/photo endpoint."""
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(f"{self._base}/api/shops/{shop_id}/photo")
+                if resp.status_code == 200:
+                    return resp.content
+        except Exception:
+            pass
+        return None
+
     async def cancel_from_reminder(self, booking_id: int, telegram_id: int) -> dict:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.post(

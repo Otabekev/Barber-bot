@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { getAvailableSlots, createBooking } from "../api/client";
 import { toast } from "../components/Layout";
+import useStore from "../store/useStore";
+import { t, DATE_LOCALE } from "../i18n";
 
 const today = () => new Date().toISOString().split("T")[0];
 const addDays = (d, n) => {
@@ -16,20 +18,22 @@ function dateDays() {
   return days;
 }
 
-function fmtDate(d) {
-  return new Date(d + "T00:00:00").toLocaleDateString("uz-UZ", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-}
-
 const STEPS = { DATE: "date", SLOT: "slot", FORM: "form", DONE: "done" };
 
 export default function BookingFlow() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const shopId = Number(params.get("shop_id"));
+  const { user } = useStore();
+  const lang = user?.language || "uz";
+
+  function fmtDate(d) {
+    return new Date(d + "T00:00:00").toLocaleDateString(DATE_LOCALE[lang], {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  }
 
   const [step, setStep] = useState(STEPS.DATE);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -51,7 +55,7 @@ export default function BookingFlow() {
       setSlots(data.slots || []);
     } catch {
       setSlots([]);
-      toast("Slotlarni yuklashda xato");
+      toast(t("book_slot_error", lang));
     } finally {
       setSlotsLoading(false);
     }
@@ -82,7 +86,7 @@ export default function BookingFlow() {
       });
       setStep(STEPS.DONE);
     } catch (err) {
-      const msg = err.response?.data?.detail || "Bron qilishda xato";
+      const msg = err.response?.data?.detail || t("book_submit_error", lang);
       toast(msg);
     } finally {
       setSubmitting(false);
@@ -95,15 +99,15 @@ export default function BookingFlow() {
     return (
       <div style={{ padding: 24, textAlign: "center" }}>
         <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
-        <h2>Bron qilindi!</h2>
+        <h2>{t("book_done_title", lang)}</h2>
         <p style={{ color: "var(--hint)", margin: "8px 0 24px" }}>
-          {fmtDate(selectedDate)}, soat {selectedSlot}
+          {fmtDate(selectedDate)}, {selectedSlot}
         </p>
         <p style={{ color: "var(--hint)", fontSize: 14, marginBottom: 24 }}>
-          Sartarosh tasdiqlashi bilanoq xabar olasiz.
+          {t("book_done_hint", lang)}
         </p>
         <button className="btn btn-primary" onClick={() => navigate("/my-bookings")}>
-          Bronlarim
+          {t("book_my_bookings_btn", lang)}
         </button>
       </div>
     );
@@ -131,7 +135,7 @@ export default function BookingFlow() {
 
       {step === STEPS.DATE && (
         <>
-          <h2 style={{ marginBottom: 16 }}>📅 Kun tanlang</h2>
+          <h2 style={{ marginBottom: 16 }}>{t("book_pick_date", lang)}</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {dateDays().map((d) => (
               <button
@@ -140,7 +144,7 @@ export default function BookingFlow() {
                 style={{ textAlign: "left", justifyContent: "flex-start" }}
                 onClick={() => pickDate(d)}
               >
-                {d === today() ? "Bugun — " : ""}{fmtDate(d)}
+                {d === today() ? t("book_today_prefix", lang) : ""}{fmtDate(d)}
               </button>
             ))}
           </div>
@@ -156,14 +160,14 @@ export default function BookingFlow() {
             >
               ←
             </button>
-            <h2 style={{ margin: 0 }}>⏰ Vaqt tanlang</h2>
+            <h2 style={{ margin: 0 }}>{t("book_pick_slot", lang)}</h2>
           </div>
           <p style={{ color: "var(--hint)", marginBottom: 16 }}>{fmtDate(selectedDate)}</p>
           {slotsLoading ? (
-            <div className="loader" style={{ height: 120 }}>Yuklanmoqda…</div>
+            <div className="loader" style={{ height: 120 }}>{t("book_loading_slots", lang)}</div>
           ) : slots.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center", color: "var(--hint)" }}>
-              Bu kunda bo'sh vaqt yo'q
+              {t("book_no_slots", lang)}
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
@@ -191,7 +195,7 @@ export default function BookingFlow() {
             >
               ←
             </button>
-            <h2 style={{ margin: 0 }}>👤 Ma'lumotlaringiz</h2>
+            <h2 style={{ margin: 0 }}>{t("book_your_info", lang)}</h2>
           </div>
           <div
             style={{
@@ -207,22 +211,22 @@ export default function BookingFlow() {
           </div>
           <form onSubmit={submitBooking}>
             <div className="form-group">
-              <label>Ismingiz</label>
+              <label>{t("book_name_label", lang)}</label>
               <input
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ism Familiya"
+                placeholder={t("book_name_placeholder", lang)}
                 required
               />
             </div>
             <div className="form-group">
-              <label>Telefon raqam</label>
+              <label>{t("book_phone_label", lang)}</label>
               <input
                 className="input"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+998901234567"
+                placeholder={t("book_phone_placeholder", lang)}
                 type="tel"
                 required
               />
@@ -233,7 +237,7 @@ export default function BookingFlow() {
               style={{ width: "100%", marginTop: 8 }}
               disabled={submitting}
             >
-              {submitting ? "Yuborilmoqda…" : "✅ Bron qilish"}
+              {submitting ? t("book_submitting", lang) : t("book_submit", lang)}
             </button>
           </form>
         </>

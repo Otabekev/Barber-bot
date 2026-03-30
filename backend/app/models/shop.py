@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, LargeBinary
+from sqlalchemy.orm import relationship, deferred
 
 from app.database import Base
 
@@ -17,6 +17,13 @@ class Shop(Base):
     slot_duration = Column(Integer, default=30)  # minutes
     is_approved = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+
+    # Premium profile fields
+    description = Column(Text, nullable=True)
+    has_photo = Column(Boolean, default=False)
+    photo_mime = Column(String(50), nullable=True)
+    # Deferred: photo bytes are NOT loaded in regular shop list queries
+    photo = deferred(Column(LargeBinary, nullable=True))
 
     owner = relationship("User", back_populates="shops")
     schedules = relationship(

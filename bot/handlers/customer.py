@@ -4,6 +4,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     WebAppInfo,
+    BufferedInputFile,
 )
 
 from bot.i18n import t
@@ -87,19 +88,41 @@ async def handle_region_pick(callback: CallbackQuery, backend: BackendClient, mi
     # Send each shop as a separate message with a "Book" WebApp button
     for shop in shops:
         book_url = f"{mini_app_url}/book?shop_id={shop['id']}"
+        markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text=t("book_button", lang),
+                web_app=WebAppInfo(url=book_url),
+            )]
+        ])
+
+        # Build card text: base info + optional description
+        desc = (shop.get("description") or "").strip()
+        approved_mark = " ✅" if shop.get("is_approved") else ""
+        card_text = t("shop_card", lang,
+                      name=shop["name"] + approved_mark,
+                      city=shop["city"],
+                      address=shop["address"],
+                      phone=shop["phone"])
+        if desc:
+            # Telegram caption limit is 1024 chars — truncate safely
+            card_text = card_text + f"\n\n📝 <i>{desc[:280]}</i>"
+
+        # If shop has a cover photo, send it as a photo message with caption
+        if shop.get("has_photo"):
+            photo_bytes = await backend.get_shop_photo(shop["id"])
+            if photo_bytes:
+                await callback.message.answer_photo(
+                    photo=BufferedInputFile(photo_bytes, filename="shop.jpg"),
+                    caption=card_text,
+                    parse_mode="HTML",
+                    reply_markup=markup,
+                )
+                continue  # skip the text fallback below
+
         await callback.message.answer(
-            t("shop_card", lang,
-              name=shop["name"],
-              city=shop["city"],
-              address=shop["address"],
-              phone=shop["phone"]),
+            card_text,
             parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(
-                    text=t("book_button", lang),
-                    web_app=WebAppInfo(url=book_url),
-                )]
-            ]),
+            reply_markup=markup,
         )
 
     await callback.answer()

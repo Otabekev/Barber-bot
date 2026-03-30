@@ -1,6 +1,13 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    Message,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+)
 
 from bot.i18n import t
 from bot.api_client import BackendClient
@@ -9,6 +16,9 @@ router = Router()
 
 # User language cache: {telegram_id: "uz"|"ru"|"en"}
 _lang_cache: dict[int, str] = {}
+
+# Button texts for all languages — used in the filter below
+RESTART_BUTTON_TEXTS = {"🔄 Boshlash", "🔄 Начать заново", "🔄 Restart"}
 
 
 def get_lang(telegram_id: int) -> str:
@@ -33,11 +43,33 @@ def main_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=t("find_barber", lang), callback_data="menu:find_barber")],
         [InlineKeyboardButton(text=t("register_shop", lang), callback_data="menu:register_shop")],
+        [InlineKeyboardButton(text=t("help_button", lang), callback_data="menu:help")],
     ])
+
+
+def persistent_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="🔄 Boshlash")]],
+        resize_keyboard=True,
+        persistent=True,
+    )
+
+
+@router.message(F.text.in_(RESTART_BUTTON_TEXTS))
+async def handle_restart(message: Message):
+    await message.answer(
+        t("choose_language", "uz"),
+        reply_markup=_language_keyboard(),
+    )
 
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
+    # Attach the persistent reply keyboard first so it stays visible
+    await message.answer(
+        t("restart_button", "uz"),
+        reply_markup=persistent_keyboard(),
+    )
     await message.answer(
         t("choose_language", "uz"),
         reply_markup=_language_keyboard(),
@@ -63,6 +95,16 @@ async def handle_language_pick(callback: CallbackQuery, backend: BackendClient):
     await callback.message.answer(
         t("main_menu", lang, name=user.first_name or user.full_name or ""),
         reply_markup=main_menu_keyboard(lang),
+        parse_mode="HTML",
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu:help")
+async def handle_help(callback: CallbackQuery):
+    lang = get_lang(callback.from_user.id)
+    await callback.message.answer(
+        t("help_text", lang),
         parse_mode="HTML",
     )
     await callback.answer()

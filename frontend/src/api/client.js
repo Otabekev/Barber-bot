@@ -69,6 +69,15 @@ export const updateShop = (data) => api.put("/shops/my", data).then((r) => r.dat
 export const getAvailableSlots = (shopId, date) =>
   api.get(`/shops/${shopId}/available-slots`, { params: { date } }).then((r) => r.data);
 
+export const uploadShopPhoto = (file) => {
+  const form = new FormData();
+  form.append("file", file);
+  return api.post("/shops/my/photo", form).then((r) => r.data);
+};
+export const deleteShopPhoto = () => api.delete("/shops/my/photo").then((r) => r.data);
+// Returns the direct URL of a shop's cover photo (usable in <img src> or bot fetch)
+export const getShopPhotoUrl = (shopId) => `${BASE_URL}/shops/${shopId}/photo`;
+
 // ── Schedule ──────────────────────────────────────────────────────────────────
 export const getMySchedule = () => api.get("/schedules/my").then((r) => r.data);
 export const updateSchedule = (schedules) =>

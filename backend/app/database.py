@@ -43,3 +43,16 @@ async def init_db():
             )
     except Exception:
         pass
+
+    # Live migration: add premium profile fields to shops if missing.
+    for stmt in [
+        "ALTER TABLE shops ADD COLUMN description TEXT",
+        "ALTER TABLE shops ADD COLUMN has_photo BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE shops ADD COLUMN photo_mime VARCHAR(50)",
+        "ALTER TABLE shops ADD COLUMN photo BYTEA",
+    ]:
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(text(stmt))
+        except Exception:
+            pass
