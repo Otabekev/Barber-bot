@@ -141,5 +141,16 @@
   "tab_history": "Tarix",
   "no_bookings_today": "Bugun bron yo'q.",
   "no_upcoming_bookings": "Kelgusi bronlar yo'q.",
-  "no_history": "Tarix bo'sh."
+  "no_history": "Tarix bo'sh.",
+
+  "pick_service": "Xizmat turini tanlang",
+  "service_haircut": "Soch kesish",
+  "service_beard": "Soqol",
+  "service_combo": "Combo (soch + soqol)",
+
+  "shop_rejected_msg": "Sartaroshxonangiz rad etildi. Qayta ariza topshirishingiz mumkin.",
+  "shop_reapply": "Qayta ariza topshirish",
+
+  "beard_duration_label": "Soqol xizmati davomiyligi",
+  "beard_duration_none": "Yo'q (faqat soch kesish)"
 }

@@ -14,6 +14,7 @@ from app.models.work_schedule import WorkSchedule
 from app.models.booking import Booking
 from app.models.blocked_slot import BlockedSlot
 from app.schemas.shop import ShopCreate, ShopUpdate, ShopOut, UZBEKISTAN_REGIONS
+from app.services.slot_utils import get_service_duration, times_overlap
 
 router = APIRouter(prefix="/shops", tags=["shops"])
 
@@ -135,13 +136,29 @@ async def get_shop_photo(shop_id: int, db: AsyncSession = Depends(get_db)):
     return Response(content=shop.photo, media_type=shop.photo_mime or "image/jpeg")
 
 
+@router.get("/{shop_id}/public")
+async def get_shop_public(shop_id: int, db: AsyncSession = Depends(get_db)):
+    """Public: lightweight shop info (name, durations) used by the booking flow."""
+    result = await db.execute(select(Shop).where(Shop.id == shop_id, Shop.is_active == True))
+    shop = result.scalar_one_or_none()
+    if shop is None:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    return {
+        "id": shop.id,
+        "name": shop.name,
+        "slot_duration": shop.slot_duration,
+        "beard_duration": shop.beard_duration,
+    }
+
+
 @router.get("/{shop_id}/available-slots")
 async def get_available_slots(
     shop_id: int,
     date: str = Query(..., description="Date in YYYY-MM-DD format"),
+    service_type: str = Query("haircut", description="Service type: haircut | beard | combo"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return all available (not booked, not blocked) time slots for a shop on a given date."""
+    """Return available start times for a given service type on a given date."""
     try:
         target_date = datetime.strptime(date, "%Y-%m-%d").date()
     except ValueError:
@@ -162,28 +179,34 @@ async def get_available_slots(
     )
     schedule = sched_result.scalar_one_or_none()
     if schedule is None:
-        return {"date": date, "slots": []}
+        return {"date": date, "slots": [], "all_slots": [], "blocked": []}
 
-    # Generate all slots between open_time and close_time
+    # Generate candidate start times at the finest interval (min of haircut / beard duration)
     open_h, open_m = map(int, schedule.open_time.split(":"))
     close_h, close_m = map(int, schedule.close_time.split(":"))
     current_dt = datetime(2000, 1, 1, open_h, open_m)
     end_dt = datetime(2000, 1, 1, close_h, close_m)
 
+    interval = shop.slot_duration
+    if shop.beard_duration:
+        interval = min(shop.slot_duration, shop.beard_duration)
+
     all_slots: list[str] = []
     while current_dt < end_dt:
         all_slots.append(current_dt.strftime("%H:%M"))
-        current_dt += timedelta(minutes=shop.slot_duration)
+        current_dt += timedelta(minutes=interval)
 
-    # Fetch booked slots
+    req_duration = get_service_duration(shop, service_type)
+
+    # Fetch active bookings for this date
     bookings_result = await db.execute(
-        select(Booking.time_slot).where(
+        select(Booking).where(
             Booking.shop_id == shop_id,
             Booking.booking_date == target_date,
             Booking.status.in_(["pending", "confirmed"]),
         )
     )
-    booked = {row[0] for row in bookings_result.all()}
+    active_bookings = bookings_result.scalars().all()
 
     # Fetch blocked slots
     blocked_result = await db.execute(
@@ -194,5 +217,22 @@ async def get_available_slots(
     )
     blocked = {row[0] for row in blocked_result.all()}
 
-    available = [s for s in all_slots if s not in booked and s not in blocked]
+    # Filter: a candidate is available if:
+    # 1. The requested time range [candidate, candidate+req_duration) doesn't overlap any booking
+    # 2. The requested time range fits before close_time
+    # 3. The candidate itself is not blocked
+    available: list[str] = []
+    for slot in all_slots:
+        if slot in blocked:
+            continue
+        slot_end_dt = datetime.strptime(slot, "%H:%M") + timedelta(minutes=req_duration)
+        if slot_end_dt > end_dt:
+            continue  # would run past closing time
+        overlaps = any(
+            times_overlap(slot, req_duration, b.time_slot, get_service_duration(shop, b.service_type))
+            for b in active_bookings
+        )
+        if not overlaps:
+            available.append(slot)
+
     return {"date": date, "slots": available, "all_slots": all_slots, "blocked": list(blocked)}

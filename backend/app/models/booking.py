@@ -6,11 +6,7 @@ from app.database import Base
 
 class Booking(Base):
     __tablename__ = "bookings"
-    __table_args__ = (
-        UniqueConstraint(
-            "shop_id", "booking_date", "time_slot", name="uq_shop_date_slot"
-        ),
-    )
+    __table_args__ = ()
 
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
@@ -21,6 +17,7 @@ class Booking(Base):
     customer_name = Column(String(255), nullable=False)
     customer_phone = Column(String(20), nullable=False)
     reminder_sent = Column(Boolean, default=False, nullable=False)
+    service_type = Column(String(20), nullable=False, default="haircut")  # haircut | beard | combo
 
     customer = relationship("User", foreign_keys=[customer_id])
     shop = relationship("Shop", back_populates="bookings")

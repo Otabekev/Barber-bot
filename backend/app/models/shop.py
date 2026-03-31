@@ -17,6 +17,8 @@ class Shop(Base):
     slot_duration = Column(Integer, default=30)  # minutes
     is_approved = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    is_rejected = Column(Boolean, default=False, nullable=False)
+    beard_duration = Column(Integer, nullable=True)  # None = beard not offered; 5/10/15 minutes
 
     district = Column(String(100), nullable=True)
 

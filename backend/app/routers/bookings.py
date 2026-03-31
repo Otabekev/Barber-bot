@@ -16,6 +16,7 @@ from app.services.notifications import (
     notify_barber_customer_cancelled,
     notify_customer_status_change,
 )
+from app.services.slot_utils import get_service_duration, times_overlap
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -60,17 +61,29 @@ async def create_booking(
     db: AsyncSession = Depends(get_db),
 ):
     """Book a slot (called by customers via the customer mini app)."""
-    # Verify slot isn't taken
-    conflict = await db.execute(
+    # Fetch shop for duration calculation
+    shop_result = await db.execute(select(Shop).where(Shop.id == data.shop_id))
+    shop = shop_result.scalar_one_or_none()
+    if shop is None:
+        raise HTTPException(status_code=404, detail="Shop not found")
+
+    req_duration = get_service_duration(shop, data.service_type)
+
+    # Fetch all active bookings for that day
+    active_result = await db.execute(
         select(Booking).where(
             Booking.shop_id == data.shop_id,
             Booking.booking_date == data.booking_date,
-            Booking.time_slot == data.time_slot,
             Booking.status.in_(["pending", "confirmed"]),
         )
     )
-    if conflict.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail="This slot is already booked")
+    active_bookings = active_result.scalars().all()
+
+    # Check time-range overlap with each existing booking
+    for b in active_bookings:
+        b_duration = get_service_duration(shop, b.service_type)
+        if times_overlap(data.time_slot, req_duration, b.time_slot, b_duration):
+            raise HTTPException(status_code=409, detail="This time slot is not available")
 
     booking = Booking(customer_id=current_user.id, **data.model_dump())
     db.add(booking)

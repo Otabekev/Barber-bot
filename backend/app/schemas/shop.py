@@ -100,12 +100,20 @@ class ShopCreate(BaseModel):
     slot_duration: int = 30
     description: Optional[str] = None
     district: Optional[str] = None
+    beard_duration: Optional[int] = None
 
     @field_validator("slot_duration")
     @classmethod
     def validate_slot_duration(cls, v: int) -> int:
         if v not in (15, 20, 30, 45, 60):
             raise ValueError("slot_duration must be one of 15, 20, 30, 45, 60")
+        return v
+
+    @field_validator("beard_duration")
+    @classmethod
+    def validate_beard_duration(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and v not in (5, 10, 15):
+            raise ValueError("beard_duration must be one of 5, 10, 15 or null")
         return v
 
     @field_validator("region")
@@ -126,12 +134,20 @@ class ShopUpdate(BaseModel):
     is_active: Optional[bool] = None
     description: Optional[str] = None
     district: Optional[str] = None
+    beard_duration: Optional[int] = None
 
     @field_validator("slot_duration")
     @classmethod
     def validate_slot_duration(cls, v: Optional[int]) -> Optional[int]:
         if v is not None and v not in (15, 20, 30, 45, 60):
             raise ValueError("slot_duration must be one of 15, 20, 30, 45, 60")
+        return v
+
+    @field_validator("beard_duration")
+    @classmethod
+    def validate_beard_duration(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and v not in (5, 10, 15):
+            raise ValueError("beard_duration must be one of 5, 10, 15 or null")
         return v
 
     @field_validator("region")
@@ -153,8 +169,10 @@ class ShopOut(BaseModel):
     slot_duration: int
     is_approved: bool
     is_active: bool
+    is_rejected: bool = False
     description: Optional[str] = None
     has_photo: bool = False
     district: Optional[str] = None
+    beard_duration: Optional[int] = None
 
     model_config = {"from_attributes": True}

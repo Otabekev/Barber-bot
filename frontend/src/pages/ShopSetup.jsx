@@ -14,7 +14,7 @@ const REGIONS = Object.keys(DISTRICTS);
 
 const EMPTY = {
   name: "", region: "Toshkent shahri", district: "", city: "", address: "",
-  phone: "", slot_duration: 30, description: "",
+  phone: "", slot_duration: 30, beard_duration: "", description: "",
 };
 
 export default function ShopSetup() {
@@ -37,6 +37,7 @@ export default function ShopSetup() {
         address: shop.address,
         phone: shop.phone,
         slot_duration: shop.slot_duration,
+        beard_duration: shop.beard_duration ?? "",
         description: shop.description || "",
       });
       if (shop.has_photo) setPhotoPreview(getShopPhotoUrl(shop.id));
@@ -63,6 +64,7 @@ export default function ShopSetup() {
       const data = {
         ...form,
         slot_duration: Number(form.slot_duration),
+        beard_duration: form.beard_duration ? Number(form.beard_duration) : null,
         description: form.description.trim() || null,
       };
       const result = shop ? await updateShop(data) : await createShop(data);
@@ -292,6 +294,20 @@ export default function ShopSetup() {
               {SLOT_OPTIONS.map((m) => <option key={m} value={m}>{m} {t("minutes", lang)}</option>)}
             </select>
             <p style={{ fontSize: 12, color: "var(--hint)", marginTop: 6 }}>{t("slot_duration_hint", lang)}</p>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">{t("beard_duration_label", lang)}</label>
+            <select
+              className="form-input form-select"
+              value={form.beard_duration}
+              onChange={(e) => set("beard_duration", e.target.value)}
+            >
+              <option value="">{t("beard_duration_none", lang)}</option>
+              <option value="5">5 {t("minutes", lang)}</option>
+              <option value="10">10 {t("minutes", lang)}</option>
+              <option value="15">15 {t("minutes", lang)}</option>
+            </select>
           </div>
         </div>
 

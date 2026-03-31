@@ -63,3 +63,31 @@ async def init_db():
                 await conn.execute(text(stmt))
         except Exception:
             pass
+
+    # Live migration: add is_rejected + beard_duration to shops if missing.
+    for stmt in [
+        "ALTER TABLE shops ADD COLUMN is_rejected BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE shops ADD COLUMN beard_duration INTEGER",
+    ]:
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(text(stmt))
+        except Exception:
+            pass
+
+    # Live migration: add service_type to bookings if missing.
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text("ALTER TABLE bookings ADD COLUMN service_type VARCHAR(20) NOT NULL DEFAULT 'haircut'")
+            )
+    except Exception:
+        pass
+
+    # Live migration: drop unique constraint on (shop_id, booking_date, time_slot) if it exists.
+    # With service-type overlap logic, two bookings can start at different times on the same slot string.
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE bookings DROP CONSTRAINT IF EXISTS uq_shop_date_slot"))
+    except Exception:
+        pass

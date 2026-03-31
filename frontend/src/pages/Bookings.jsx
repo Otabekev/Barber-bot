@@ -51,6 +51,15 @@ function BookingCard({ booking, onStatusChange, lang }) {
           <div style={{ fontSize: 13, color: "var(--hint)", marginTop: 3 }}>
             {fmtFullDate(booking.booking_date)}
           </div>
+          {booking.service_type && booking.service_type !== "haircut" && (
+            <span style={{
+              display: "inline-block", marginTop: 4,
+              background: "#e0f2fe", color: "#0369a1",
+              fontSize: 11, fontWeight: 600, borderRadius: 10, padding: "2px 8px",
+            }}>
+              {t("service_" + booking.service_type, lang)}
+            </span>
+          )}
         </div>
         <span
           style={{

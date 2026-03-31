@@ -141,5 +141,16 @@
   "tab_history": "История",
   "no_bookings_today": "Сегодня нет записей.",
   "no_upcoming_bookings": "Нет предстоящих записей.",
-  "no_history": "История пуста."
+  "no_history": "История пуста.",
+
+  "pick_service": "Выберите услугу",
+  "service_haircut": "Стрижка",
+  "service_beard": "Борода",
+  "service_combo": "Комбо (стрижка + борода)",
+
+  "shop_rejected_msg": "Ваша заявка на регистрацию магазина была отклонена. Вы можете подать повторно.",
+  "shop_reapply": "Подать заново",
+
+  "beard_duration_label": "Длительность услуги «борода»",
+  "beard_duration_none": "Нет (только стрижка)"
 }

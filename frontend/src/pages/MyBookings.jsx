@@ -65,9 +65,20 @@ export default function MyBookings() {
             return (
               <div key={b.id} className="card" style={{ padding: "14px 16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontWeight: 600, fontSize: 15 }}>
-                    {fmtDate(b.booking_date)}, {b.time_slot}
-                  </span>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: 15 }}>
+                      {fmtDate(b.booking_date)}, {b.time_slot}
+                    </span>
+                    {b.service_type && b.service_type !== "haircut" && (
+                      <span style={{
+                        display: "inline-block", marginLeft: 8,
+                        background: "#e0f2fe", color: "#0369a1",
+                        fontSize: 11, fontWeight: 600, borderRadius: 10, padding: "2px 8px",
+                      }}>
+                        {t("service_" + b.service_type, lang)}
+                      </span>
+                    )}
+                  </div>
                   <span
                     style={{
                       fontSize: 12,
@@ -76,6 +87,7 @@ export default function MyBookings() {
                       background: s.color + "22",
                       borderRadius: 20,
                       padding: "2px 10px",
+                      flexShrink: 0,
                     }}
                   >
                     {t("status_" + b.status, lang)}

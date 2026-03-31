@@ -69,8 +69,11 @@ export const updateLanguage = (language) =>
 export const getMyShop = () => api.get("/shops/my").then((r) => r.data);
 export const createShop = (data) => api.post("/shops/", data).then((r) => r.data);
 export const updateShop = (data) => api.put("/shops/my", data).then((r) => r.data);
-export const getAvailableSlots = (shopId, date) =>
-  api.get(`/shops/${shopId}/available-slots`, { params: { date } }).then((r) => r.data);
+export const getAvailableSlots = (shopId, date, serviceType = "haircut") =>
+  api.get(`/shops/${shopId}/available-slots`, { params: { date, service_type: serviceType } }).then((r) => r.data);
+
+export const getShopPublic = (shopId) =>
+  api.get(`/shops/${shopId}/public`).then((r) => r.data);
 
 export const uploadShopPhoto = (file) => {
   const form = new FormData();

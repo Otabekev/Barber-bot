@@ -141,5 +141,16 @@
   "tab_history": "History",
   "no_bookings_today": "No bookings today.",
   "no_upcoming_bookings": "No upcoming bookings.",
-  "no_history": "History is empty."
+  "no_history": "History is empty.",
+
+  "pick_service": "Choose a service",
+  "service_haircut": "Haircut",
+  "service_beard": "Beard trim",
+  "service_combo": "Combo (hair + beard)",
+
+  "shop_rejected_msg": "Your shop application was rejected. You can reapply.",
+  "shop_reapply": "Reapply",
+
+  "beard_duration_label": "Beard service duration",
+  "beard_duration_none": "None (haircut only)"
 }

@@ -41,6 +41,7 @@ async def admin_approve_shop(
     if shop is None:
         raise HTTPException(status_code=404, detail="Shop not found")
     shop.is_approved = True
+    shop.is_rejected = False
     await db.commit()
     await db.refresh(shop)
     return shop
@@ -57,6 +58,7 @@ async def admin_reject_shop(
     if shop is None:
         raise HTTPException(status_code=404, detail="Shop not found")
     shop.is_approved = False
+    shop.is_rejected = True
     await db.commit()
     await db.refresh(shop)
     return shop

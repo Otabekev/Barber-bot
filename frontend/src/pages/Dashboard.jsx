@@ -42,7 +42,7 @@ export default function Dashboard() {
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>{user?.full_name}</h1>
       </div>
 
-      {/* No shop yet — customer view */}
+      {/* ── No shop: pure customer view ── */}
       {!shop && !user?.is_admin && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div className="card" style={{ textAlign: "center", padding: "28px 16px" }}>
@@ -65,17 +65,53 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Shop info + stats */}
-      {shop && (
+      {/* ── Rejected shop ── */}
+      {shop && shop.is_rejected && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="alert alert-danger" style={{
+            background: "#fee2e2", color: "#991b1b", borderLeft: "4px solid #ef4444",
+            borderRadius: 10, padding: "14px 16px", fontSize: 14,
+          }}>
+            {t("shop_rejected_msg", lang)}
+          </div>
+          <Link to="/my-bookings" className="btn btn-ghost" style={{ textAlign: "center" }}>
+            📋 {t("view_bookings", lang)}
+          </Link>
+          <Link to="/shop" className="btn btn-primary">
+            {t("shop_reapply", lang)}
+          </Link>
+        </div>
+      )}
+
+      {/* ── Pending approval ── */}
+      {shop && !shop.is_approved && !shop.is_rejected && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="card" style={{ overflow: "hidden", padding: 0, marginBottom: 0 }}>
+            {shop.has_photo && (
+              <img src={getShopPhotoUrl(shop.id)} alt={shop.name}
+                style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }} />
+            )}
+            <div style={{ padding: "14px 16px" }}>
+              <div style={{ fontWeight: 700, fontSize: 17 }}>{shop.name}</div>
+              <div style={{ color: "var(--hint)", fontSize: 13, marginTop: 2 }}>{shop.city} · {shop.address}</div>
+            </div>
+          </div>
+          <div className="alert alert-warning">
+            {t("pending_approval_msg", lang)}
+          </div>
+          <Link to="/my-bookings" className="btn btn-ghost" style={{ textAlign: "center" }}>
+            📋 {t("view_bookings", lang)}
+          </Link>
+        </div>
+      )}
+
+      {/* ── Approved barber dashboard ── */}
+      {shop && shop.is_approved && (
         <>
           <div className="card" style={{ marginBottom: 16, overflow: "hidden", padding: 0 }}>
-            {/* Cover photo */}
             {shop.has_photo && (
-              <img
-                src={getShopPhotoUrl(shop.id)}
-                alt={shop.name}
-                style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
-              />
+              <img src={getShopPhotoUrl(shop.id)} alt={shop.name}
+                style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
             )}
             <div style={{ padding: "14px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -88,21 +124,12 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
-                <span
-                  className={`badge ${shop.is_approved ? "badge-approved" : "badge-pending-approval"}`}
-                  style={{ marginLeft: 10, flexShrink: 0 }}
-                >
-                  {shop.is_approved ? t("status_approved", lang) : t("status_pending", lang)}
+                <span className="badge badge-approved" style={{ marginLeft: 10, flexShrink: 0 }}>
+                  {t("status_approved", lang)}
                 </span>
               </div>
             </div>
           </div>
-
-          {!shop.is_approved && (
-            <div className="alert alert-warning">
-              {t("pending_approval_msg", lang)}
-            </div>
-          )}
 
           {loading ? (
             <div className="loader">{t("loading", lang)}</div>
@@ -158,15 +185,16 @@ export default function Dashboard() {
               )}
             </>
           )}
-        </>
-      )}
 
-      {/* Quick actions */}
-      {shop && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 20 }}>
-          <Link to="/schedule" className="btn btn-ghost">{t("schedule_btn", lang)}</Link>
-          <Link to="/block-slots" className="btn btn-ghost">{t("block_slots_btn", lang)}</Link>
-        </div>
+          {/* Quick actions */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 20 }}>
+            <Link to="/schedule" className="btn btn-ghost">{t("schedule_btn", lang)}</Link>
+            <Link to="/block-slots" className="btn btn-ghost">{t("block_slots_btn", lang)}</Link>
+          </div>
+          <Link to="/my-bookings" style={{ display: "block", textAlign: "center", color: "var(--hint)", fontSize: 13, marginTop: 12 }}>
+            📋 {t("view_bookings", lang)}
+          </Link>
+        </>
       )}
     </div>
   );
