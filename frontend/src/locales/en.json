@@ -152,5 +152,11 @@
   "shop_reapply": "Reapply",
 
   "beard_duration_label": "Beard service duration",
-  "beard_duration_none": "None (haircut only)"
+  "beard_duration_none": "None (haircut only)",
+
+  "slots_morning": "Morning",
+  "slots_afternoon": "Afternoon",
+  "slots_evening": "Evening",
+  "book_combo_popular": "Popular",
+  "change": "Change"
 }

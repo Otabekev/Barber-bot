@@ -152,5 +152,11 @@
   "shop_reapply": "Подать заново",
 
   "beard_duration_label": "Длительность услуги «борода»",
-  "beard_duration_none": "Нет (только стрижка)"
+  "beard_duration_none": "Нет (только стрижка)",
+
+  "slots_morning": "Утро",
+  "slots_afternoon": "День",
+  "slots_evening": "Вечер",
+  "book_combo_popular": "Популярно",
+  "change": "Изменить"
 }

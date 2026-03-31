@@ -152,5 +152,11 @@
   "shop_reapply": "Qayta ariza topshirish",
 
   "beard_duration_label": "Soqol xizmati davomiyligi",
-  "beard_duration_none": "Yo'q (faqat soch kesish)"
+  "beard_duration_none": "Yo'q (faqat soch kesish)",
+
+  "slots_morning": "Ertalab",
+  "slots_afternoon": "Tushdan keyin",
+  "slots_evening": "Kechqurun",
+  "book_combo_popular": "Mashhur",
+  "change": "O'zgartirish"
 }
