@@ -11,6 +11,7 @@ import BlockSlots from "./pages/BlockSlots";
 import BookingFlow from "./pages/BookingFlow";
 import MyBookings from "./pages/MyBookings";
 import AdminPanel from "./pages/AdminPanel";
+import ReviewPage from "./pages/ReviewPage";
 
 // Set VITE_DEV_BYPASS_TELEGRAM=true in frontend/.env.local to skip Telegram auth
 const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_TELEGRAM === "true";
@@ -22,14 +23,26 @@ function log(...args) {
 
 function AppRoutes() {
   // If the app is opened with ?shop_id=X (from bot), go straight to booking flow
+  // If opened with ?booking_id=X (review request), go to review page
   const [searchParams] = useSearchParams();
   const shopId = searchParams.get("shop_id");
+  const reviewBookingId = searchParams.get("booking_id");
   if (shopId) {
     return (
       <Layout>
         <Routes>
           <Route path="*" element={<Navigate to={`/book?shop_id=${shopId}`} replace />} />
           <Route path="/book" element={<BookingFlow />} />
+        </Routes>
+      </Layout>
+    );
+  }
+  if (reviewBookingId) {
+    return (
+      <Layout>
+        <Routes>
+          <Route path="*" element={<Navigate to={`/review?booking_id=${reviewBookingId}`} replace />} />
+          <Route path="/review" element={<ReviewPage />} />
         </Routes>
       </Layout>
     );
@@ -45,6 +58,7 @@ function AppRoutes() {
         <Route path="/block-slots" element={<BlockSlots />} />
         <Route path="/book"        element={<BookingFlow />} />
         <Route path="/my-bookings" element={<MyBookings />} />
+        <Route path="/review"      element={<ReviewPage />} />
         <Route path="/admin"       element={<AdminPanel />} />
         <Route path="*"            element={<Navigate to="/" replace />} />
       </Routes>

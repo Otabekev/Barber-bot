@@ -58,6 +58,16 @@ _MESSAGES = {
         "ru": "Запись отменена. До следующего раза! ✌️",
         "en": "Booking cancelled. See you next time! ✌️",
     },
+    "review_request": {
+        "uz": "⭐ <b>{shop}</b> da tashrif tugadi!\n\nTajribangizni baholang — bu sartaroshga katta yordam beradi.",
+        "ru": "⭐ Ваш визит в <b>{shop}</b> завершён!\n\nОставьте отзыв — это очень поможет барберу.",
+        "en": "⭐ Your visit to <b>{shop}</b> is done!\n\nLeave a quick review — it means a lot to the barber.",
+    },
+    "review_btn": {
+        "uz": "⭐ Baho berish",
+        "ru": "⭐ Оставить отзыв",
+        "en": "⭐ Leave a review",
+    },
 }
 
 
@@ -147,6 +157,37 @@ async def send_reminder(
                 logger.warning("Reminder sendMessage failed: %s", resp.text)
     except Exception as e:
         logger.warning("Failed to send reminder: %s", e)
+
+
+async def send_review_request(
+    customer_telegram_id: int,
+    booking_id: int,
+    shop_name: str,
+    mini_app_url: str,
+    customer_language: str = "uz",
+) -> None:
+    """After booking completed: send message with 'Leave a review' webapp button."""
+    lang = customer_language if customer_language in ("uz", "ru", "en") else "uz"
+    text = _MESSAGES["review_request"][lang].format(shop=shop_name)
+    btn_text = _MESSAGES["review_btn"][lang]
+    review_url = f"{mini_app_url}/review?booking_id={booking_id}"
+    url = TELEGRAM_API.format(token=settings.BOT_TOKEN)
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(url, json={
+                "chat_id": customer_telegram_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "reply_markup": {
+                    "inline_keyboard": [[
+                        {"text": btn_text, "web_app": {"url": review_url}},
+                    ]]
+                },
+            })
+            if resp.status_code != 200:
+                logger.warning("Review request sendMessage failed: %s", resp.text)
+    except Exception as e:
+        logger.warning("Failed to send review request: %s", e)
 
 
 async def notify_customer_status_change(

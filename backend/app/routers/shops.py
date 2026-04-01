@@ -81,7 +81,7 @@ async def update_shop(
     db: AsyncSession = Depends(get_db),
 ):
     shop = await _get_owner_shop(current_user, db)
-    for field, value in data.model_dump(exclude_none=True).items():
+    for field, value in data.model_dump(exclude_unset=True).items():
         setattr(shop, field, value)
     await db.commit()
     await db.refresh(shop)

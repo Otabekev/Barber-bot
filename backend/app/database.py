@@ -91,3 +91,21 @@ async def init_db():
             await conn.execute(text("ALTER TABLE bookings DROP CONSTRAINT IF EXISTS uq_shop_date_slot"))
     except Exception:
         pass
+
+    # Live migration: create reviews table if missing.
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS reviews (
+                    id SERIAL PRIMARY KEY,
+                    booking_id INTEGER NOT NULL UNIQUE REFERENCES bookings(id),
+                    shop_id INTEGER NOT NULL REFERENCES shops(id),
+                    customer_id INTEGER REFERENCES users(id),
+                    customer_name VARCHAR(100),
+                    rating INTEGER NOT NULL,
+                    comment TEXT,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                )
+            """))
+    except Exception:
+        pass

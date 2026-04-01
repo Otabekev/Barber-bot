@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import useStore from "../store/useStore";
-import { getShopBookings, getShopPhotoUrl } from "../api/client";
+import { getShopBookings, getShopPhotoUrl, getMyShopReviews } from "../api/client";
 import { t, DATE_LOCALE } from "../i18n";
 
 const today = new Date().toISOString().slice(0, 10);
+
+function StarDisplay({ rating, small }) {
+  return (
+    <span style={{ fontSize: small ? 13 : 16, letterSpacing: 1 }}>
+      {[1,2,3,4,5].map((s) => (
+        <span key={s} style={{ opacity: s <= Math.round(rating) ? 1 : 0.2 }}>★</span>
+      ))}
+    </span>
+  );
+}
 
 export default function Dashboard() {
   const { user, shop } = useStore();
@@ -12,6 +22,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ today: 0, pending: 0, upcoming: 0 });
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reviewSummary, setReviewSummary] = useState(null);
 
   function fmtDate(d) {
     return new Date(d).toLocaleDateString(DATE_LOCALE[lang], { month: "short", day: "numeric" });
@@ -19,8 +30,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!shop) { setLoading(false); return; }
-    getShopBookings({ from_date: today })
-      .then((data) => {
+    Promise.all([
+      getShopBookings({ from_date: today }),
+      getMyShopReviews().catch(() => null),
+    ]).then(([data, reviews]) => {
         const todayBookings = data.filter((b) => b.booking_date === today && b.status !== "cancelled");
         const pending = data.filter((b) => b.status === "pending");
         setStats({
@@ -29,6 +42,7 @@ export default function Dashboard() {
           upcoming: data.filter((b) => b.booking_date >= today && b.status !== "cancelled").length,
         });
         setRecent(data.slice(0, 5));
+        if (reviews) setReviewSummary(reviews);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -184,6 +198,42 @@ export default function Dashboard() {
                 </div>
               )}
             </>
+          )}
+
+          {/* Reviews summary */}
+          {reviewSummary && reviewSummary.total_reviews > 0 && (
+            <div className="card" style={{ marginTop: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ fontWeight: 700, fontSize: 16 }}>⭐ {t("reviews_title", lang)}</span>
+                <span style={{ fontSize: 13, color: "var(--hint)" }}>
+                  {reviewSummary.total_reviews} {t("reviews_count", lang)}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <span style={{ fontSize: 32, fontWeight: 800 }}>{reviewSummary.average_rating}</span>
+                <div>
+                  <StarDisplay rating={reviewSummary.average_rating} />
+                  <div style={{ fontSize: 12, color: "var(--hint)", marginTop: 2 }}>
+                    {t("reviews_out_of_5", lang)}
+                  </div>
+                </div>
+              </div>
+              {reviewSummary.reviews.slice(0, 3).map((r) => (
+                <div key={r.id} style={{
+                  borderTop: "1px solid var(--border)", paddingTop: 10, marginTop: 10,
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{r.customer_name || "—"}</span>
+                    <StarDisplay rating={r.rating} small />
+                  </div>
+                  {r.comment && (
+                    <p style={{ fontSize: 13, color: "var(--hint)", marginTop: 4, lineHeight: 1.5 }}>
+                      {r.comment}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
 
           {/* Quick actions */}

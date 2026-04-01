@@ -15,7 +15,9 @@ from app.services.notifications import (
     notify_barber_new_booking,
     notify_barber_customer_cancelled,
     notify_customer_status_change,
+    send_review_request,
 )
+from app.config import settings
 from app.services.slot_utils import get_service_duration, times_overlap
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
@@ -147,6 +149,15 @@ async def update_booking_status(
                 time_slot=booking.time_slot,
                 customer_language=customer.language,
             ))
+            # When completed: also send review request with webapp button
+            if body.status == "completed":
+                asyncio.create_task(send_review_request(
+                    customer_telegram_id=customer.telegram_id,
+                    booking_id=booking.id,
+                    shop_name=shop.name,
+                    mini_app_url=settings.MINI_APP_URL,
+                    customer_language=customer.language,
+                ))
 
     return booking
 

@@ -123,4 +123,12 @@ export const adminGetStats = () =>
 export const adminGetUsers = () =>
   api.get("/admin/users").then((r) => r.data);
 
+// ── Reviews ───────────────────────────────────────────────────────────────────
+export const submitReview = (data) =>
+  api.post("/reviews/", data).then((r) => r.data);
+export const getShopReviews = (shopId) =>
+  api.get(`/reviews/shop/${shopId}`).then((r) => r.data);
+export const getMyShopReviews = () =>
+  api.get("/reviews/my-shop").then((r) => r.data);
+
 export default api;
