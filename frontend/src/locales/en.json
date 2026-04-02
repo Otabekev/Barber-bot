@@ -181,5 +181,7 @@
   "slots_afternoon": "Afternoon",
   "slots_evening": "Evening",
   "book_combo_popular": "Popular",
-  "change": "Change"
+  "change": "Change",
+  "btn_no_show": "No-show",
+  "status_no_show": "No-show"
 }

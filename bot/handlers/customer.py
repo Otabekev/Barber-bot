@@ -1,3 +1,5 @@
+from datetime import date as _date
+
 from aiogram import Router, F
 from aiogram.types import (
     CallbackQuery,
@@ -132,6 +134,8 @@ async def _show_shops(callback: CallbackQuery, region: str, district, lang: str,
         ]),
     )
 
+    today_str = str(_date.today())
+
     # Send each shop as a separate message with a "Book" WebApp button
     for shop in shops:
         book_url = f"{mini_app_url}/book?shop_id={shop['id']}"
@@ -139,7 +143,11 @@ async def _show_shops(callback: CallbackQuery, region: str, district, lang: str,
             [InlineKeyboardButton(
                 text=t("book_button", lang),
                 web_app=WebAppInfo(url=book_url),
-            )]
+            )],
+            [InlineKeyboardButton(
+                text=t("quick_slots_btn", lang),
+                callback_data=f"slots:{shop['id']}:{today_str}",
+            )],
         ])
 
         desc = (shop.get("description") or "").strip()
@@ -164,6 +172,73 @@ async def _show_shops(callback: CallbackQuery, region: str, district, lang: str,
                 continue
 
         await callback.message.answer(card_text, parse_mode="HTML", reply_markup=markup)
+
+
+@router.callback_query(F.data.startswith("slots:"))
+async def handle_quick_slots(callback: CallbackQuery, backend: BackendClient, mini_app_url: str):
+    """Show today's available slots as inline keyboard buttons."""
+    parts = callback.data.split(":")  # ["slots", shop_id, date]
+    shop_id = int(parts[1])
+    date_str = parts[2]
+    lang = get_lang(callback.from_user.id)
+
+    slots = await backend.get_quick_slots(shop_id, date_str)
+
+    if not slots:
+        await callback.answer(t("no_slots_today", lang), show_alert=True)
+        return
+
+    # Build rows of 3 buttons each
+    rows = []
+    row = []
+    for slot in slots:
+        row.append(InlineKeyboardButton(
+            text=slot,
+            callback_data=f"book_slot:{shop_id}:{date_str}:{slot}",
+        ))
+        if len(row) == 3:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
+
+    rows.append([InlineKeyboardButton(
+        text=t("book_button", lang),
+        web_app=WebAppInfo(url=f"{mini_app_url}/book?shop_id={shop_id}"),
+    )])
+
+    await callback.message.answer(
+        t("slots_header", lang, date=date_str),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+        parse_mode="HTML",
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("book_slot:"))
+async def handle_book_slot(callback: CallbackQuery, mini_app_url: str):
+    """Open mini app pre-filled with chosen date + slot."""
+    # callback_data format: "book_slot:{shop_id}:{date}:{HH}:{MM}"
+    # split into at most 5 parts to handle the colon in "HH:MM"
+    parts = callback.data.split(":", 4)
+    shop_id = parts[1]
+    date_str = parts[2]
+    slot = f"{parts[3]}:{parts[4]}"  # reassemble "HH:MM"
+
+    url = f"{mini_app_url}/book?shop_id={shop_id}&date={date_str}&slot={slot}"
+    lang = get_lang(callback.from_user.id)
+
+    await callback.answer()
+    await callback.message.answer(
+        t("slot_selected", lang, slot=slot),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text=t("open_booking_form", lang),
+                web_app=WebAppInfo(url=url),
+            )]
+        ]),
+        parse_mode="HTML",
+    )
 
 
 @router.callback_query(F.data.startswith("remind_yes:"))

@@ -181,5 +181,7 @@
   "slots_afternoon": "Tushdan keyin",
   "slots_evening": "Kechqurun",
   "book_combo_popular": "Mashhur",
-  "change": "O'zgartirish"
+  "change": "O'zgartirish",
+  "btn_no_show": "Kelmadi",
+  "status_no_show": "Kelmagan"
 }

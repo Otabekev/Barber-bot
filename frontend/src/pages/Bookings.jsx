@@ -4,7 +4,7 @@ import useStore from "../store/useStore";
 import { getShopBookings, updateBookingStatus } from "../api/client";
 import { toast } from "../components/Layout";
 import { t, DATE_LOCALE } from "../i18n";
-import { User, Phone, Check, Store, Sun, CalendarX, Archive, AlertCircle } from "lucide-react";
+import { User, Phone, Check, Store, Sun, CalendarX, Archive, AlertCircle, UserX } from "lucide-react";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -72,11 +72,13 @@ function BookingCard({ booking, onStatusChange, lang }) {
               status === "pending"   ? "#fef3c7" :
               status === "confirmed" ? "#d1fae5" :
               status === "completed" ? "#e0f2fe" :
+              status === "no_show"   ? "#f3f4f6" :
               "#fee2e2",
             color:
               status === "pending"   ? "#92400e" :
               status === "confirmed" ? "#065f46" :
               status === "completed" ? "#0369a1" :
+              status === "no_show"   ? "#6b7280" :
               "#991b1b",
           }}
         >
@@ -123,6 +125,16 @@ function BookingCard({ booking, onStatusChange, lang }) {
               disabled={loading}
             >
               <Check size={14} /> {t("btn_complete", lang)}
+            </button>
+          )}
+          {isConfirmed && (
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, color: "#6b7280" }}
+              onClick={() => changeStatus("no_show")}
+              disabled={loading}
+            >
+              <UserX size={14} /> {t("btn_no_show", lang)}
             </button>
           )}
           <button

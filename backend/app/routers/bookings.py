@@ -135,7 +135,7 @@ async def update_booking_status(
     await db.commit()
     await db.refresh(booking)
 
-    # Notify the customer if they exist
+    # Notify the customer if they exist (no notification for no_show)
     if booking.customer_id and body.status in ("confirmed", "cancelled", "completed"):
         customer_result = await db.execute(select(User).where(User.id == booking.customer_id))
         customer = customer_result.scalar_one_or_none()

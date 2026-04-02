@@ -55,6 +55,17 @@ class BackendClient:
             pass
         return None
 
+    async def get_quick_slots(self, shop_id: int, date_str: str) -> list[str]:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                f"{self._base}/api/bot/quick-slots",
+                params={"shop_id": shop_id, "date": date_str},
+                headers=self._headers,
+            )
+            if resp.status_code == 200:
+                return resp.json().get("slots", [])
+            return []
+
     async def cancel_from_reminder(self, booking_id: int, telegram_id: int) -> dict:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.post(

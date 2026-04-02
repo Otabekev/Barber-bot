@@ -40,6 +40,7 @@ export default function MyBookings() {
     confirmed: { color: "#10b981" },
     cancelled: { color: "#ef4444" },
     completed: { color: "#6b7280" },
+    no_show:   { color: "#9ca3af" },
   };
 
   useEffect(() => {

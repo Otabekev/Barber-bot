@@ -25,5 +25,10 @@
   "remind_cancelled_customer": "Bron bekor qilindi. Keyingi safar ko'rishguncha! ✌️",
   "restart_button": "🔄 Boshlash",
   "help_button": "ℹ️ Ko'rsatma",
-  "help_text": "ℹ️ <b>Botdan qanday foydalanish:</b>\n\n👤 <b>Mijozlar uchun:</b>\n1. «💈 Sartarosh topish» tugmasini bosing\n2. Viloyatingizni tanlang\n3. Sartaroshxonani tanlang\n4. «📅 Bron qilish» tugmasini bosing\n5. Kun va vaqtni tanlang, ismingiz va telefon raqamingizni kiriting\n6. Bron tasdiqlanganda Telegram orqali xabar olasiz\n\n✂️ <b>Sartaroshlar uchun:</b>\n1. «🏪 Sartaroshxona ochish» tugmasini bosing\n2. Sartaroshxonangizni ro'yxatdan o'tkazing\n3. Ish vaqtini va haftalik jadvalini sozlang\n4. Yangi bronlar haqida avtomatik xabar olasiz\n5. /bugun — bugungi bronlar ro'yxatini ko'rish\n\n🔄 Boshlashga qaytish uchun «🔄 Boshlash» tugmasini bosing."
+  "help_text": "ℹ️ <b>Botdan qanday foydalanish:</b>\n\n👤 <b>Mijozlar uchun:</b>\n1. «💈 Sartarosh topish» tugmasini bosing\n2. Viloyatingizni tanlang\n3. Sartaroshxonani tanlang\n4. «📅 Bron qilish» tugmasini bosing\n5. Kun va vaqtni tanlang, ismingiz va telefon raqamingizni kiriting\n6. Bron tasdiqlanganda Telegram orqali xabar olasiz\n\n✂️ <b>Sartaroshlar uchun:</b>\n1. «🏪 Sartaroshxona ochish» tugmasini bosing\n2. Sartaroshxonangizni ro'yxatdan o'tkazing\n3. Ish vaqtini va haftalik jadvalini sozlang\n4. Yangi bronlar haqida avtomatik xabar olasiz\n5. /bugun — bugungi bronlar ro'yxatini ko'rish\n\n🔄 Boshlashga qaytish uchun «🔄 Boshlash» tugmasini bosing.",
+  "quick_slots_btn": "⚡ Bo'sh vaqtlar",
+  "no_slots_today": "Bugun bo'sh vaqt yo'q",
+  "slots_header": "📅 <b>{date}</b> uchun bo'sh vaqtlar:\n\nVaqtni tanlang:",
+  "slot_selected": "✅ <b>{slot}</b> tanlandi. Bron qilish uchun tugmani bosing:",
+  "open_booking_form": "📝 Bron qilish"
 }

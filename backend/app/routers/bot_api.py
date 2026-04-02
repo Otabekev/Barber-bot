@@ -5,7 +5,7 @@ Authenticated with X-Bot-Secret header instead of JWT.
 from datetime import date
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -14,8 +14,11 @@ from app.database import get_db
 from app.models.user import User
 from app.models.shop import Shop
 from app.models.booking import Booking
+from app.models.work_schedule import WorkSchedule
+from app.models.blocked_slot import BlockedSlot
 from app.schemas.shop import ShopOut
 from app.services.notifications import notify_barber_customer_cancelled
+from app.services.slot_utils import get_service_duration, times_overlap
 
 router = APIRouter(prefix="/bot", tags=["bot"])
 
@@ -121,6 +124,91 @@ async def barber_today_schedule(
             for b in bookings
         ],
     }
+
+
+@router.get("/quick-slots")
+async def get_quick_slots(
+    shop_id: int = Query(...),
+    date_str: str = Query(..., alias="date"),
+    _: None = Depends(_verify_bot_secret),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Bot calls this to get available slots for a shop on a given date.
+    Returns up to 10 slot strings for display as inline keyboard buttons.
+    """
+    shop_result = await db.execute(select(Shop).where(Shop.id == shop_id, Shop.is_approved == True))
+    shop = shop_result.scalar_one_or_none()
+    if not shop:
+        return {"slots": []}
+
+    try:
+        target_date = date.fromisoformat(date_str)
+    except ValueError:
+        return {"slots": []}
+
+    # Get shop schedule for this weekday (0=Monday … 6=Sunday)
+    weekday = target_date.weekday()
+    sched_result = await db.execute(
+        select(WorkSchedule).where(
+            WorkSchedule.shop_id == shop_id,
+            WorkSchedule.day_of_week == weekday,
+            WorkSchedule.is_working == True,
+        )
+    )
+    schedule = sched_result.scalar_one_or_none()
+    if not schedule:
+        return {"slots": []}
+
+    # Determine interval (finest granularity)
+    interval = shop.slot_duration
+    if shop.beard_duration:
+        interval = min(shop.slot_duration, shop.beard_duration)
+
+    # Generate all candidate start times
+    open_h, open_m = map(int, schedule.open_time.split(":"))
+    close_h, close_m = map(int, schedule.close_time.split(":"))
+    open_minutes = open_h * 60 + open_m
+    close_minutes = close_h * 60 + close_m
+
+    # Fetch active bookings for overlap check
+    bookings_result = await db.execute(
+        select(Booking).where(
+            Booking.shop_id == shop_id,
+            Booking.booking_date == target_date,
+            Booking.status.in_(["pending", "confirmed"]),
+        )
+    )
+    active_bookings = bookings_result.scalars().all()
+
+    # Fetch blocked slots
+    blocked_result = await db.execute(
+        select(BlockedSlot).where(
+            BlockedSlot.shop_id == shop_id,
+            BlockedSlot.block_date == target_date,
+        )
+    )
+    blocked_times = {b.time_slot for b in blocked_result.scalars().all()}
+
+    available = []
+    cur = open_minutes
+    while cur + shop.slot_duration <= close_minutes:
+        h, m = divmod(cur, 60)
+        slot_str = f"{h:02d}:{m:02d}"
+
+        if slot_str not in blocked_times:
+            overlaps = False
+            for b in active_bookings:
+                b_dur = get_service_duration(shop, b.service_type)
+                if times_overlap(slot_str, shop.slot_duration, b.time_slot, b_dur):
+                    overlaps = True
+                    break
+            if not overlaps:
+                available.append(slot_str)
+
+        cur += interval
+
+    return {"slots": available[:10]}
 
 
 @router.post("/cancel-from-reminder")

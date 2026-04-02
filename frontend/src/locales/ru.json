@@ -181,5 +181,7 @@
   "slots_afternoon": "День",
   "slots_evening": "Вечер",
   "book_combo_popular": "Популярно",
-  "change": "Изменить"
+  "change": "Изменить",
+  "btn_no_show": "Не пришёл",
+  "status_no_show": "Не пришёл"
 }

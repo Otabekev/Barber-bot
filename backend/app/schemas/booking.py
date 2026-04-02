@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import date
 
 
-VALID_STATUSES = {"pending", "confirmed", "cancelled", "completed"}
+VALID_STATUSES = {"pending", "confirmed", "cancelled", "completed", "no_show"}
 VALID_SERVICE_TYPES = {"haircut", "beard", "combo"}
 
 

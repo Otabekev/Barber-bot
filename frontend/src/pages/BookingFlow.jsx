@@ -86,16 +86,18 @@ export default function BookingFlow() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const shopId = Number(params.get("shop_id"));
+  const preDate = params.get("date") || null;
+  const preSlot = params.get("slot") || null;
   const { user } = useStore();
   const lang = user?.language || "uz";
 
   const [shopInfo, setShopInfo] = useState(null);
   const [step, setStep] = useState(null);
   const [selectedService, setSelectedService] = useState("haircut");
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(preDate);
   const [slots, setSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(preSlot);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("+998");
   const [submitting, setSubmitting] = useState(false);
@@ -107,11 +109,22 @@ export default function BookingFlow() {
     getShopPublic(shopId)
       .then((info) => {
         setShopInfo(info);
-        setStep(info.beard_duration ? STEPS.SERVICE : STEPS.DATE);
+        // If both date and slot are pre-filled from bot quick-book, jump to form
+        if (preDate && preSlot) {
+          setStep(STEPS.FORM);
+        } else if (preDate) {
+          // Date pre-selected — load slots and go to slot picker
+          setStep(STEPS.SLOT);
+          getAvailableSlots(shopId, preDate, "haircut")
+            .then((data) => setSlots(data.slots || []))
+            .catch(() => setSlots([]));
+        } else {
+          setStep(info.beard_duration ? STEPS.SERVICE : STEPS.DATE);
+        }
       })
       .catch(() => {
         setShopInfo({ slot_duration: 30, beard_duration: null });
-        setStep(STEPS.DATE);
+        setStep(preDate && preSlot ? STEPS.FORM : STEPS.DATE);
       });
   }, [shopId, navigate]);
 
