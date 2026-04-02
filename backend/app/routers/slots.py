@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from typing import List, Optional
-from datetime import date
+from datetime import date, timedelta
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.deps import get_current_user
 from app.models.user import User
 from app.models.shop import Shop
+from app.models.work_schedule import WorkSchedule
 from app.models.blocked_slot import BlockedSlot
 from app.schemas.blocked_slot import BlockSlotCreate, UnblockSlotRequest, BlockedSlotOut
 
@@ -71,6 +73,91 @@ async def block_slots(
     for bs in created:
         await db.refresh(bs)
     return created
+
+
+class VacationRequest(BaseModel):
+    start_date: date
+    end_date: date
+
+
+@router.post("/block-range", status_code=200)
+async def block_date_range(
+    data: VacationRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Block ALL slots for every working day in [start_date, end_date] inclusive."""
+    if data.end_date < data.start_date:
+        raise HTTPException(status_code=400, detail="end_date must be >= start_date")
+    if (data.end_date - data.start_date).days > 60:
+        raise HTTPException(status_code=400, detail="Range cannot exceed 60 days")
+
+    shop = await _get_owner_shop(current_user, db)
+
+    # Load all work schedules for this shop
+    sched_result = await db.execute(
+        select(WorkSchedule).where(WorkSchedule.shop_id == shop.id)
+    )
+    schedules = {s.day_of_week: s for s in sched_result.scalars().all()}
+
+    from datetime import datetime
+    interval = shop.slot_duration
+    if shop.beard_duration:
+        interval = min(shop.slot_duration, shop.beard_duration)
+
+    blocked_count = 0
+    current = data.start_date
+    while current <= data.end_date:
+        sched = schedules.get(current.weekday())
+        if sched and sched.is_working:
+            open_h, open_m = map(int, sched.open_time.split(":"))
+            close_h, close_m = map(int, sched.close_time.split(":"))
+            cur_dt = datetime(2000, 1, 1, open_h, open_m)
+            end_dt = datetime(2000, 1, 1, close_h, close_m)
+            while cur_dt < end_dt:
+                slot_str = cur_dt.strftime("%H:%M")
+                existing = await db.execute(
+                    select(BlockedSlot).where(
+                        BlockedSlot.shop_id == shop.id,
+                        BlockedSlot.block_date == current,
+                        BlockedSlot.time_slot == slot_str,
+                    )
+                )
+                if existing.scalar_one_or_none() is None:
+                    db.add(BlockedSlot(shop_id=shop.id, block_date=current, time_slot=slot_str))
+                    blocked_count += 1
+                cur_dt += timedelta(minutes=interval)
+
+        current += timedelta(days=1)
+
+    await db.commit()
+    return {"blocked_count": blocked_count, "days": (data.end_date - data.start_date).days + 1}
+
+
+@router.delete("/block-range", status_code=200)
+async def unblock_date_range(
+    data: VacationRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove ALL blocked slots in [start_date, end_date] inclusive."""
+    if data.end_date < data.start_date:
+        raise HTTPException(status_code=400, detail="end_date must be >= start_date")
+
+    shop = await _get_owner_shop(current_user, db)
+
+    current = data.start_date
+    while current <= data.end_date:
+        await db.execute(
+            delete(BlockedSlot).where(
+                BlockedSlot.shop_id == shop.id,
+                BlockedSlot.block_date == current,
+            )
+        )
+        current += timedelta(days=1)
+
+    await db.commit()
+    return {"message": "Range unblocked"}
 
 
 @router.post("/unblock", status_code=200)

@@ -4,6 +4,7 @@ import useStore from "../store/useStore";
 import { getShopBookings, updateBookingStatus } from "../api/client";
 import { toast } from "../components/Layout";
 import { t, DATE_LOCALE } from "../i18n";
+import { User, Phone, Check, Store, Sun, CalendarX, Archive, AlertCircle } from "lucide-react";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -26,8 +27,8 @@ function BookingCard({ booking, onStatusChange, lang }) {
       const updated = await updateBookingStatus(booking.id, newStatus);
       onStatusChange(updated);
       toast(t("booking_updated", lang));
-    } catch {
-      toast(t("update_failed", lang));
+    } catch (err) {
+      toast(err.response?.data?.detail || t("update_failed", lang));
     } finally {
       setLoading(false);
     }
@@ -93,8 +94,12 @@ function BookingCard({ booking, onStatusChange, lang }) {
           fontSize: 14,
         }}
       >
-        <div style={{ fontWeight: 600 }}>👤 {booking.customer_name}</div>
-        <div style={{ color: "var(--hint)", marginTop: 4 }}>📞 {booking.customer_phone}</div>
+        <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+          <User size={13} color="var(--hint)" /> {booking.customer_name}
+        </div>
+        <div style={{ color: "var(--hint)", marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+          <Phone size={13} color="var(--hint)" /> {booking.customer_phone}
+        </div>
       </div>
 
       {/* Actions */}
@@ -103,21 +108,21 @@ function BookingCard({ booking, onStatusChange, lang }) {
           {isPending && (
             <button
               className="btn btn-success btn-sm"
-              style={{ flex: 1 }}
+              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
               onClick={() => changeStatus("confirmed")}
               disabled={loading}
             >
-              ✓ {t("btn_confirm", lang)}
+              <Check size={14} /> {t("btn_confirm", lang)}
             </button>
           )}
           {isConfirmed && (
             <button
               className="btn btn-primary btn-sm"
-              style={{ flex: 1 }}
+              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
               onClick={() => changeStatus("completed")}
               disabled={loading}
             >
-              ✓ {t("btn_complete", lang)}
+              <Check size={14} /> {t("btn_complete", lang)}
             </button>
           )}
           <button
@@ -180,14 +185,16 @@ export default function Bookings() {
   const [tab, setTab] = useState(TAB_TODAY);
   const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!shop) { setLoading(false); return; }
     setLoading(true);
+    setLoadError(false);
     // Fetch all bookings at once; we filter client-side for the 3 tabs
     getShopBookings({})
       .then(setAllBookings)
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [shop]);
 
@@ -219,7 +226,7 @@ export default function Bookings() {
   if (!shop) {
     return (
       <div className="empty-state">
-        <div style={{ fontSize: 36 }}>🏪</div>
+        <Store size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
         <p>{t("create_shop_first", lang)}</p>
         <Link to="/shop" className="btn btn-primary" style={{ marginTop: 16 }}>
           {t("go_to_shop_setup", lang)}
@@ -229,9 +236,9 @@ export default function Bookings() {
   }
 
   const TABS = [
-    { id: TAB_TODAY,    label: `📅 ${t("tab_today", lang)}`,    count: todayBookings.length },
-    { id: TAB_UPCOMING, label: `🔜 ${t("tab_upcoming", lang)}`, count: upcomingBookings.length },
-    { id: TAB_HISTORY,  label: `📋 ${t("tab_history", lang)}`,  count: 0 },
+    { id: TAB_TODAY,    label: t("tab_today", lang),    icon: <Sun size={14} />,       count: todayBookings.length },
+    { id: TAB_UPCOMING, label: t("tab_upcoming", lang), icon: <CalendarX size={14} />, count: upcomingBookings.length },
+    { id: TAB_HISTORY,  label: t("tab_history", lang),  icon: <Archive size={14} />,   count: 0 },
   ];
 
   const activeList =
@@ -251,7 +258,7 @@ export default function Bookings() {
 
       {/* Tab bar */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--secondary-bg)", borderRadius: 12, padding: 4 }}>
-        {TABS.map(({ id, label, count }) => (
+        {TABS.map(({ id, label, icon, count }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -268,8 +275,13 @@ export default function Bookings() {
               color: tab === id ? "var(--btn-text)" : "var(--hint)",
               transition: "all 0.15s",
               lineHeight: 1.2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 3,
             }}
           >
+            {icon}
             {label}
             {count > 0 && (
               <span
@@ -295,12 +307,22 @@ export default function Bookings() {
 
       {loading && <div className="loader">{t("loading", lang)}</div>}
 
-      {!loading && activeList.length === 0 && (
+      {!loading && loadError && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fee2e2", color: "#991b1b", borderRadius: 10, padding: "12px 16px", fontSize: 14, marginBottom: 16 }}>
+          <AlertCircle size={15} style={{ flexShrink: 0 }} />
+          {t("load_error", lang)}
+        </div>
+      )}
+
+      {!loading && !loadError && activeList.length === 0 && (
         <div className="empty-state">
-          <div style={{ fontSize: 40 }}>
-            {tab === TAB_TODAY ? "☀️" : tab === TAB_UPCOMING ? "📭" : "🗂️"}
-          </div>
-          <p style={{ marginTop: 12 }}>
+          {tab === TAB_TODAY
+            ? <Sun size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
+            : tab === TAB_UPCOMING
+            ? <CalendarX size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
+            : <Archive size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
+          }
+          <p style={{ marginTop: 4 }}>
             {tab === TAB_TODAY    ? t("no_bookings_today", lang) :
              tab === TAB_UPCOMING ? t("no_upcoming_bookings", lang) :
              t("no_history", lang)}
@@ -309,12 +331,12 @@ export default function Bookings() {
       )}
 
       {/* Today: flat list sorted by time */}
-      {!loading && tab === TAB_TODAY && todayBookings.map((b) => (
+      {!loading && !loadError && tab === TAB_TODAY && todayBookings.map((b) => (
         <BookingCard key={b.id} booking={b} onStatusChange={handleStatusChange} lang={lang} />
       ))}
 
       {/* Upcoming / History: grouped by date */}
-      {!loading && showGrouped && sortedDates.map((date) => (
+      {!loading && !loadError && showGrouped && sortedDates.map((date) => (
         <BookingDateGroup
           key={date}
           date={date}

@@ -35,7 +35,7 @@ export default function Schedule() {
           );
         }
       })
-      .catch(() => {})
+      .catch(() => toast(t("load_error", lang)))
       .finally(() => setLoading(false));
   }, [shop]);
 

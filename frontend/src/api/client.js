@@ -104,6 +104,10 @@ export const blockSlots = (block_date, time_slots) =>
   api.post("/slots/block", { block_date, time_slots }).then((r) => r.data);
 export const unblockSlots = (block_date, time_slots) =>
   api.post("/slots/unblock", { block_date, time_slots }).then((r) => r.data);
+export const blockDateRange = (start_date, end_date) =>
+  api.post("/slots/block-range", { start_date, end_date }).then((r) => r.data);
+export const unblockDateRange = (start_date, end_date) =>
+  api.delete("/slots/block-range", { data: { start_date, end_date } }).then((r) => r.data);
 
 // ── Customer bookings ─────────────────────────────────────────────────────────
 export const getMyBookings = () =>

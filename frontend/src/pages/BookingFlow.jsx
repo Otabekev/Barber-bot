@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import {
+  ArrowLeft, Scissors, User, Layers, CalendarDays,
+  Clock, ChevronRight, CheckCircle2, Home,
+} from "lucide-react";
 import { getAvailableSlots, createBooking, getShopPublic } from "../api/client";
 import { toast } from "../components/Layout";
 import useStore from "../store/useStore";
@@ -29,10 +33,10 @@ function BackBtn({ onClick }) {
         border: "none", background: "var(--secondary-bg)",
         display: "flex", alignItems: "center", justifyContent: "center",
         cursor: "pointer", flexShrink: 0,
-        fontSize: 18, color: "var(--text)",
+        color: "var(--hint)",
       }}
     >
-      ←
+      <ArrowLeft size={18} />
     </button>
   );
 }
@@ -200,9 +204,11 @@ export default function BookingFlow() {
           width: 88, height: 88, borderRadius: "50%",
           background: "linear-gradient(135deg, #10b981, #059669)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 42, marginBottom: 24,
+          marginBottom: 24,
           boxShadow: "0 8px 32px rgba(16,185,129,0.35)",
-        }}>✅</div>
+        }}>
+          <CheckCircle2 size={44} color="#fff" />
+        </div>
 
         <h2 style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>
           {t("book_done_title", lang)}
@@ -252,9 +258,9 @@ export default function BookingFlow() {
         </button>
         <button
           onClick={() => navigate("/")}
-          style={{ marginTop: 12, background: "none", border: "none", color: "var(--hint)", fontSize: 14, cursor: "pointer" }}
+          style={{ marginTop: 12, background: "none", border: "none", color: "var(--hint)", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}
         >
-          {t("book_done_home", lang)}
+          <Home size={14} /> {t("book_done_home", lang)}
         </button>
       </div>
     );
@@ -264,13 +270,13 @@ export default function BookingFlow() {
   const SERVICE_OPTIONS = [
     {
       key: "haircut",
-      icon: "✂️",
+      icon: <Scissors size={24} />,
       color: "#3b82f6",
       dur: hairDur,
     },
     ...(hasBeard ? [
-      { key: "beard",  icon: "🪒", color: "#8b5cf6", dur: beardDur },
-      { key: "combo",  icon: "💈", color: "#f59e0b", dur: comboDur, badge: t("book_combo_popular", lang) || "⭐" },
+      { key: "beard",  icon: <User size={24} />,   color: "#8b5cf6", dur: beardDur },
+      { key: "combo",  icon: <Layers size={24} />, color: "#f59e0b", dur: comboDur, badge: t("book_combo_popular", lang) },
     ] : []),
   ];
 

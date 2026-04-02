@@ -1,11 +1,106 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import useStore from "../store/useStore";
-import { getAvailableSlots, blockSlots, unblockSlots } from "../api/client";
+import { getAvailableSlots, blockSlots, unblockSlots, blockDateRange, unblockDateRange } from "../api/client";
 import { toast } from "../components/Layout";
 import { t } from "../i18n";
+import { Palmtree, ChevronDown, ChevronUp, Store, MoonStar } from "lucide-react";
 
 const today = new Date().toISOString().slice(0, 10);
+
+function VacationPanel({ lang, shopExists }) {
+  const [open, setOpen] = useState(false);
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+  const [saving, setSaving] = useState(false);
+
+  if (!shopExists) return null;
+
+  async function handleBlock() {
+    if (endDate < startDate) { toast(t("vacation_date_error", lang)); return; }
+    setSaving(true);
+    try {
+      const res = await blockDateRange(startDate, endDate);
+      toast(`✅ ${res.blocked_count} ${t("vacation_blocked_msg", lang)}`);
+      setOpen(false);
+    } catch (err) {
+      toast(err.response?.data?.detail || t("save_failed", lang));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUnblock() {
+    if (endDate < startDate) { toast(t("vacation_date_error", lang)); return; }
+    setSaving(true);
+    try {
+      await unblockDateRange(startDate, endDate);
+      toast(t("vacation_unblocked_msg", lang));
+      setOpen(false);
+    } catch (err) {
+      toast(err.response?.data?.detail || t("save_failed", lang));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", background: "none", border: "none", cursor: "pointer",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: 0, fontSize: 15, fontWeight: 700, color: "var(--text)",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Palmtree size={16} color="var(--hint)" />
+          {t("vacation_title", lang)}
+        </span>
+        {open ? <ChevronUp size={16} color="var(--hint)" /> : <ChevronDown size={16} color="var(--hint)" />}
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          <p style={{ fontSize: 13, color: "var(--hint)", marginBottom: 12 }}>
+            {t("vacation_hint", lang)}
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <div>
+              <label className="form-label">{t("vacation_from", lang)}</label>
+              <input type="date" className="form-input" value={startDate} min={today}
+                onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="form-label">{t("vacation_to", lang)}</label>
+              <input type="date" className="form-input" value={endDate} min={startDate}
+                onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleBlock}
+              disabled={saving}
+              style={{ fontSize: 14 }}
+            >
+              {saving ? t("saving", lang) : t("vacation_block_btn", lang)}
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={handleUnblock}
+              disabled={saving}
+              style={{ fontSize: 14 }}
+            >
+              {t("vacation_unblock_btn", lang)}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function BlockSlots() {
   const { user, shop } = useStore();
@@ -56,8 +151,8 @@ export default function BlockSlots() {
       setSlotData(fresh);
       setPendingBlocked(new Set(fresh.blocked || []));
       toast(t("block_saved", lang));
-    } catch {
-      toast(t("save_failed", lang));
+    } catch (err) {
+      toast(err.response?.data?.detail || t("save_failed", lang));
     } finally {
       setSaving(false);
     }
@@ -66,7 +161,7 @@ export default function BlockSlots() {
   if (!shop) {
     return (
       <div className="empty-state">
-        <div style={{ fontSize: 36 }}>🏪</div>
+        <Store size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
         <p>{t("create_shop_first", lang)}</p>
         <Link to="/shop" className="btn btn-primary" style={{ marginTop: 16 }}>
           {t("go_to_shop_setup", lang)}
@@ -83,6 +178,8 @@ export default function BlockSlots() {
       <p style={{ color: "var(--hint)", fontSize: 14, marginBottom: 16 }}>
         {t("block_slots_hint", lang)}
       </p>
+
+      <VacationPanel lang={lang} shopExists={!!shop} />
 
       <div className="card">
         <div className="form-group" style={{ marginBottom: 0 }}>
@@ -101,7 +198,7 @@ export default function BlockSlots() {
 
       {slotData && allSlots.length === 0 && (
         <div className="empty-state">
-          <div style={{ fontSize: 36 }}>😴</div>
+          <MoonStar size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
           <p>{t("block_shop_closed", lang)}</p>
           <Link to="/schedule" style={{ color: "var(--btn)", fontSize: 13, marginTop: 8, display: "block" }}>
             {t("block_edit_schedule", lang)}

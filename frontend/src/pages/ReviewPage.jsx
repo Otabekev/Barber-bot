@@ -4,6 +4,7 @@ import { submitReview } from "../api/client";
 import { toast } from "../components/Layout";
 import useStore from "../store/useStore";
 import { t } from "../i18n";
+import { Scissors, Star, Home } from "lucide-react";
 
 function StarPicker({ value, onChange }) {
   const [hovered, setHovered] = useState(0);
@@ -18,13 +19,14 @@ function StarPicker({ value, onChange }) {
           onClick={() => onChange(star)}
           style={{
             background: "none", border: "none", cursor: "pointer",
-            fontSize: 44, padding: "4px 2px",
-            filter: (hovered || value) >= star ? "none" : "grayscale(1) opacity(0.3)",
-            transform: (hovered || value) >= star ? "scale(1.15)" : "scale(1)",
-            transition: "transform 0.15s, filter 0.15s",
+            padding: "4px 2px",
+            opacity: (hovered || value) >= star ? 1 : 0.25,
+            transform: (hovered || value) >= star ? "scale(1.2)" : "scale(1)",
+            transition: "transform 0.15s, opacity 0.15s",
+            color: "#f59e0b",
           }}
         >
-          ⭐
+          <Star size={40} fill={(hovered || value) >= star ? "#f59e0b" : "none"} color="#f59e0b" />
         </button>
       ))}
     </div>
@@ -82,9 +84,11 @@ export default function ReviewPage() {
           width: 88, height: 88, borderRadius: "50%",
           background: "linear-gradient(135deg, #f59e0b, #ef4444)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 44, marginBottom: 24,
+          marginBottom: 24,
           boxShadow: "0 8px 32px rgba(245,158,11,0.35)",
-        }}>⭐</div>
+        }}>
+          <Star size={44} color="#fff" fill="#fff" />
+        </div>
         <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>
           {t("review_thanks", lang)}
         </h2>
@@ -93,9 +97,10 @@ export default function ReviewPage() {
         </p>
         <button
           className="btn btn-primary"
-          style={{ width: "100%", maxWidth: 320, minHeight: 54, fontSize: 16, fontWeight: 700, borderRadius: 16 }}
+          style={{ width: "100%", maxWidth: 320, minHeight: 54, fontSize: 16, fontWeight: 700, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           onClick={() => navigate("/")}
         >
+          <Home size={18} />
           {t("book_done_home", lang)}
         </button>
       </div>
@@ -107,7 +112,7 @@ export default function ReviewPage() {
   return (
     <div style={{ padding: "24px 20px", maxWidth: 420, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <div style={{ fontSize: 48, marginBottom: 8 }}>💈</div>
+        <Scissors size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
         <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>
           {t("review_title", lang)}
         </h1>

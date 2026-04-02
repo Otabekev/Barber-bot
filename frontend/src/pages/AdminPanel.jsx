@@ -7,6 +7,7 @@ import {
   adminGetUsers,
 } from "../api/client";
 import { toast } from "../components/Layout";
+import { Check, Clock, Users, Store, ClipboardList, CheckCircle, X, ShieldCheck } from "lucide-react";
 
 const TABS = ["Shops", "Users", "Stats"];
 
@@ -21,7 +22,10 @@ function StatusBadge({ approved }) {
       color: approved ? "#10b981" : "#f59e0b",
       whiteSpace: "nowrap",
     }}>
-      {approved ? "✓ Approved" : "⏳ Pending"}
+      {approved
+        ? <><Check size={11} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />Approved</>
+        : <><Clock size={11} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />Pending</>
+      }
     </span>
   );
 }
@@ -106,16 +110,16 @@ export default function AdminPanel() {
       {tab === "Stats" && stats && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {[
-            { label: "Total Users",    value: stats.total_users,    icon: "👤" },
-            { label: "Total Shops",    value: stats.total_shops,    icon: "🏪" },
-            { label: "Pending Approval", value: stats.pending_approval, icon: "⏳", warn: stats.pending_approval > 0 },
-            { label: "Total Bookings", value: stats.total_bookings, icon: "📋" },
+            { label: "Total Users",    value: stats.total_users,    icon: <Users size={24} color="var(--hint)" /> },
+            { label: "Total Shops",    value: stats.total_shops,    icon: <Store size={24} color="var(--hint)" /> },
+            { label: "Pending Approval", value: stats.pending_approval, icon: <Clock size={24} color="#f59e0b" />, warn: stats.pending_approval > 0 },
+            { label: "Total Bookings", value: stats.total_bookings, icon: <ClipboardList size={24} color="var(--hint)" /> },
           ].map((item) => (
             <div key={item.label} className="card" style={{
               padding: "20px 12px", textAlign: "center",
               border: item.warn ? "1.5px solid #f59e0b" : "1.5px solid transparent",
             }}>
-              <div style={{ fontSize: 28 }}>{item.icon}</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>{item.icon}</div>
               <div style={{ fontSize: 32, fontWeight: 700, marginTop: 6, color: item.warn ? "#f59e0b" : "var(--text)" }}>
                 {item.value}
               </div>
@@ -130,7 +134,7 @@ export default function AdminPanel() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {shops.length === 0 && (
             <div style={{ textAlign: "center", padding: "48px 0", color: "var(--hint)" }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>🏪</div>
+              <Store size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
               <p>No shops registered yet</p>
             </div>
           )}
@@ -160,7 +164,7 @@ export default function AdminPanel() {
                       disabled={acting === shop.id + "_approve"}
                       onClick={() => approve(shop.id)}
                     >
-                      {acting === shop.id + "_approve" ? "…" : "✅ Approve"}
+                      {acting === shop.id + "_approve" ? "…" : <><CheckCircle size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }} />Approve</>}
                     </button>
                     <button
                       className="btn btn-secondary"
@@ -168,7 +172,7 @@ export default function AdminPanel() {
                       disabled={acting === shop.id + "_reject"}
                       onClick={() => reject(shop.id)}
                     >
-                      {acting === shop.id + "_reject" ? "…" : "✕ Reject"}
+                      {acting === shop.id + "_reject" ? "…" : <><X size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }} />Reject</>}
                     </button>
                   </>
                 ) : (
@@ -192,7 +196,7 @@ export default function AdminPanel() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {users.length === 0 && (
             <div style={{ textAlign: "center", padding: "48px 0", color: "var(--hint)" }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>👤</div>
+              <Users size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
               <p>No users yet</p>
             </div>
           )}
