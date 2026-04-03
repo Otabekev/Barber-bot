@@ -9,6 +9,7 @@ VALID_SERVICE_TYPES = {"haircut", "beard", "combo"}
 
 class BookingCreate(BaseModel):
     shop_id: int
+    staff_id: Optional[int] = None
     booking_date: date
     time_slot: str
     customer_name: str
@@ -35,6 +36,7 @@ class BookingOut(BaseModel):
     id: int
     customer_id: Optional[int] = None
     shop_id: int
+    staff_id: Optional[int] = None
     booking_date: date
     time_slot: str
     status: str

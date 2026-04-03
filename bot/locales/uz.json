@@ -35,5 +35,15 @@
   "svc_haircut": "✂️ Soch olish",
   "svc_beard": "🧔 Soqol",
   "svc_combo": "✂️+🧔 Ikkalasi",
-  "rating_line": "⭐ {rating} ({count} ta sharh)"
+  "rating_line": "⭐ {rating} ({count} ta sharh)",
+  "setlocation_prompt": "📍 Sartaroshxonangiz joylashgan joyni ulashing. Quydagi tugmani bosing:",
+  "setlocation_button": "📍 Joylashuvni ulashish",
+  "setlocation_saved": "✅ Joylashuv saqlandi! Mijozlar xaritada ko'ra oladi.",
+  "setlocation_no_shop": "❌ Sartaroshxonangiz topilmadi. Avval ro'yxatdan o'ting.",
+  "invite_bot_msg": "🎉 Siz <b>{shop}</b> sartaroshxonasiga taklif qilindingiz!\n\nQo'shilish uchun pastdagi tugmani bosing.",
+  "invite_open_btn": "Jamoaga qo'shilish",
+  "invite_not_found_bot": "❌ Taklif topilmadi yoki muddati o'tgan.",
+  "invite_expired_bot": "❌ Bu taklif havolasining muddati o'tgan.",
+  "invite_used_bot": "❌ Bu havoladan allaqachon foydalanilgan.",
+  "pick_barber_bot": "Qaysi barberga yozilmoqchisiz?"
 }

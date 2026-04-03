@@ -13,6 +13,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.user import User
 from app.models.shop import Shop
+from app.models.staff import Staff
 from app.models.booking import Booking
 from app.models.work_schedule import WorkSchedule
 from app.models.blocked_slot import BlockedSlot
@@ -97,12 +98,25 @@ async def get_shops_by_region(
     )
     ratings = {row.shop_id: (round(float(row.avg), 1), row.cnt) for row in rating_result}
 
+    # Fetch active approved staff for all shops in one query
+    staff_result = await db.execute(
+        select(Staff).where(
+            Staff.shop_id.in_(shop_ids),
+            Staff.is_active == True,
+            Staff.is_approved == True,
+        ).order_by(Staff.created_at)
+    )
+    staff_by_shop: dict = {}
+    for s in staff_result.scalars().all():
+        staff_by_shop.setdefault(s.shop_id, []).append({"id": s.id, "display_name": s.display_name})
+
     out = []
     for shop in shops_list:
         d = ShopOut.model_validate(shop).model_dump()
         avg, cnt = ratings.get(shop.id, (None, 0))
         d["avg_rating"] = avg
         d["review_count"] = cnt
+        d["staff"] = staff_by_shop.get(shop.id, [])
         out.append(d)
     return out
 
@@ -113,21 +127,31 @@ async def barber_today_schedule(
     _: None = Depends(_verify_bot_secret),
     db: AsyncSession = Depends(get_db),
 ):
-    """Bot calls this for /bugun command — returns today's bookings for a barber."""
+    """Bot calls this for /bugun command — returns today's bookings for a barber (by staff record)."""
     user_result = await db.execute(select(User).where(User.telegram_id == telegram_id))
     user = user_result.scalar_one_or_none()
     if not user:
         return {"bookings": [], "message": "not_registered"}
 
-    shop_result = await db.execute(select(Shop).where(Shop.owner_id == user.id))
-    shop = shop_result.scalar_one_or_none()
-    if not shop:
+    # Look up their staff record
+    staff_result = await db.execute(
+        select(Staff).where(
+            Staff.user_id == user.id,
+            Staff.is_active == True,
+            Staff.is_approved == True,
+        )
+    )
+    staff = staff_result.scalar_one_or_none()
+    if not staff:
         return {"bookings": [], "message": "no_shop"}
+
+    shop_result = await db.execute(select(Shop).where(Shop.id == staff.shop_id))
+    shop = shop_result.scalar_one_or_none()
 
     today = date.today()
     bookings_result = await db.execute(
         select(Booking).where(
-            Booking.shop_id == shop.id,
+            Booking.staff_id == staff.id,
             Booking.booking_date == today,
             Booking.status.in_(["pending", "confirmed"]),
         ).order_by(Booking.time_slot)
@@ -135,7 +159,7 @@ async def barber_today_schedule(
     bookings = bookings_result.scalars().all()
 
     return {
-        "shop_name": shop.name,
+        "shop_name": shop.name if shop else "",
         "date": str(today),
         "bookings": [
             {
@@ -154,11 +178,12 @@ async def get_quick_slots(
     shop_id: int = Query(...),
     date_str: str = Query(..., alias="date"),
     service: str = Query("haircut"),
+    staff_id: int | None = Query(None),
     _: None = Depends(_verify_bot_secret),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Bot calls this to get available slots for a shop on a given date.
+    Bot calls this to get available slots for a shop/staff on a given date.
     Returns up to 10 slot strings for display as inline keyboard buttons.
     """
     shop_result = await db.execute(select(Shop).where(Shop.id == shop_id, Shop.is_approved == True))
@@ -171,11 +196,20 @@ async def get_quick_slots(
     except ValueError:
         return {"slots": []}
 
-    # Get shop schedule for this weekday (0=Monday … 6=Sunday)
+    # Resolve staff
+    target_staff_id = staff_id
+    if target_staff_id is None:
+        owner_staff = await db.execute(
+            select(Staff).where(Staff.shop_id == shop_id, Staff.user_id == shop.owner_id)
+        )
+        owner_s = owner_staff.scalar_one_or_none()
+        if owner_s:
+            target_staff_id = owner_s.id
+
     weekday = target_date.weekday()
     sched_result = await db.execute(
         select(WorkSchedule).where(
-            WorkSchedule.shop_id == shop_id,
+            WorkSchedule.staff_id == target_staff_id,
             WorkSchedule.day_of_week == weekday,
             WorkSchedule.is_working == True,
         )
@@ -184,34 +218,28 @@ async def get_quick_slots(
     if not schedule:
         return {"slots": []}
 
-    # Duration for the requested service
     svc_duration = get_service_duration(shop, service)
-
-    # Determine interval (finest granularity so we show all possible starts)
     interval = shop.slot_duration
     if shop.beard_duration:
         interval = min(shop.slot_duration, shop.beard_duration)
 
-    # Generate all candidate start times
     open_h, open_m = map(int, schedule.open_time.split(":"))
     close_h, close_m = map(int, schedule.close_time.split(":"))
     open_minutes = open_h * 60 + open_m
     close_minutes = close_h * 60 + close_m
 
-    # Fetch active bookings for overlap check
     bookings_result = await db.execute(
         select(Booking).where(
-            Booking.shop_id == shop_id,
+            Booking.staff_id == target_staff_id,
             Booking.booking_date == target_date,
             Booking.status.in_(["pending", "confirmed"]),
         )
     )
     active_bookings = bookings_result.scalars().all()
 
-    # Fetch blocked slots
     blocked_result = await db.execute(
         select(BlockedSlot).where(
-            BlockedSlot.shop_id == shop_id,
+            BlockedSlot.staff_id == target_staff_id,
             BlockedSlot.block_date == target_date,
         )
     )
@@ -236,6 +264,35 @@ async def get_quick_slots(
         cur += interval
 
     return {"slots": available[:10]}
+
+
+@router.post("/set-shop-location")
+async def set_shop_location(
+    body: dict,
+    _: None = Depends(_verify_bot_secret),
+    db: AsyncSession = Depends(get_db),
+):
+    """Bot calls this after barber shares location via /setlocation command."""
+    telegram_id = body.get("telegram_id")
+    latitude = body.get("latitude")
+    longitude = body.get("longitude")
+    if not telegram_id or latitude is None or longitude is None:
+        raise HTTPException(status_code=400, detail="telegram_id, latitude, longitude required")
+
+    user_result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    shop_result = await db.execute(select(Shop).where(Shop.owner_id == user.id))
+    shop = shop_result.scalar_one_or_none()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+
+    shop.latitude = latitude
+    shop.longitude = longitude
+    await db.commit()
+    return {"ok": True}
 
 
 @router.post("/cancel-from-reminder")
@@ -275,21 +332,40 @@ async def cancel_from_reminder(
     await db.commit()
     await db.refresh(booking)
 
-    # Notify barber
-    shop_result = await db.execute(select(Shop).where(Shop.id == booking.shop_id))
-    shop = shop_result.scalar_one_or_none()
-    if shop:
-        owner_result = await db.execute(select(User).where(User.id == shop.owner_id))
-        owner = owner_result.scalar_one_or_none()
-        if owner:
-            import asyncio
-            asyncio.create_task(notify_barber_customer_cancelled(
-                barber_telegram_id=owner.telegram_id,
-                customer_name=booking.customer_name,
-                customer_phone=booking.customer_phone,
-                booking_date=str(booking.booking_date),
-                time_slot=booking.time_slot,
-                barber_language=owner.language,
-            ))
+    # Notify the assigned staff member (or fall back to shop owner)
+    import asyncio
+    notified = False
+    if booking.staff_id:
+        assigned_result = await db.execute(select(Staff).where(Staff.id == booking.staff_id))
+        assigned = assigned_result.scalar_one_or_none()
+        if assigned:
+            barber_result = await db.execute(select(User).where(User.id == assigned.user_id))
+            barber = barber_result.scalar_one_or_none()
+            if barber:
+                asyncio.create_task(notify_barber_customer_cancelled(
+                    barber_telegram_id=barber.telegram_id,
+                    customer_name=booking.customer_name,
+                    customer_phone=booking.customer_phone,
+                    booking_date=str(booking.booking_date),
+                    time_slot=booking.time_slot,
+                    barber_language=barber.language,
+                ))
+                notified = True
+
+    if not notified:
+        shop_result = await db.execute(select(Shop).where(Shop.id == booking.shop_id))
+        shop = shop_result.scalar_one_or_none()
+        if shop:
+            owner_result = await db.execute(select(User).where(User.id == shop.owner_id))
+            owner = owner_result.scalar_one_or_none()
+            if owner:
+                asyncio.create_task(notify_barber_customer_cancelled(
+                    barber_telegram_id=owner.telegram_id,
+                    customer_name=booking.customer_name,
+                    customer_phone=booking.customer_phone,
+                    booking_date=str(booking.booking_date),
+                    time_slot=booking.time_slot,
+                    barber_language=owner.language,
+                ))
 
     return {"ok": True, "already": False}

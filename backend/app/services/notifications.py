@@ -207,6 +207,71 @@ async def notify_barber_message(
     await _send(customer_telegram_id, text)
 
 
+async def notify_admin_staff_pending(
+    staff_name: str,
+    shop_id: int,
+    db,
+) -> None:
+    """Alert all admins that a new staff member is awaiting approval."""
+    from sqlalchemy import select
+    from app.models.user import User
+    from app.models.shop import Shop
+
+    shop_result = await db.execute(select(Shop).where(Shop.id == shop_id))
+    shop = shop_result.scalar_one_or_none()
+    shop_name = shop.name if shop else f"shop #{shop_id}"
+
+    admin_result = await db.execute(select(User).where(User.is_admin == True))
+    admins = admin_result.scalars().all()
+    text = (
+        f"👤 <b>Yangi xodim kutilmoqda</b>\n\n"
+        f"Ism: {staff_name}\n"
+        f"Do'kon: {shop_name}\n\n"
+        f"Admin paneldan tasdiqlang yoki rad eting."
+    )
+    for admin in admins:
+        await _send(admin.telegram_id, text)
+
+
+async def notify_staff_approved(
+    staff_telegram_id: int,
+    shop_name: str,
+    language: str = "uz",
+) -> None:
+    msgs = {
+        "uz": f"✅ Siz <b>{shop_name}</b> jamoasiga qo'shildingiz! Endi ilovani ishlatishingiz mumkin.",
+        "ru": f"✅ Вы добавлены в команду <b>{shop_name}</b>! Теперь вы можете пользоваться приложением.",
+        "en": f"✅ You have joined <b>{shop_name}</b>! You can now use the app.",
+    }
+    await _send(staff_telegram_id, msgs.get(language, msgs["uz"]))
+
+
+async def notify_staff_rejected(
+    staff_telegram_id: int,
+    shop_name: str,
+    language: str = "uz",
+) -> None:
+    msgs = {
+        "uz": f"❌ Afsuski, <b>{shop_name}</b> jamoasiga qo'shilish so'rovingiz rad etildi.",
+        "ru": f"❌ К сожалению, ваша заявка на вступление в <b>{shop_name}</b> отклонена.",
+        "en": f"❌ Your request to join <b>{shop_name}</b> has been declined.",
+    }
+    await _send(staff_telegram_id, msgs.get(language, msgs["uz"]))
+
+
+async def notify_owner_staff_joined(
+    owner_telegram_id: int,
+    staff_name: str,
+    language: str = "uz",
+) -> None:
+    msgs = {
+        "uz": f"🎉 <b>{staff_name}</b> sizning jamoangizga qo'shildi va admin tomonidan tasdiqlandi!",
+        "ru": f"🎉 <b>{staff_name}</b> присоединился к вашей команде и одобрен администратором!",
+        "en": f"🎉 <b>{staff_name}</b> has joined your team and was approved by admin!",
+    }
+    await _send(owner_telegram_id, msgs.get(language, msgs["uz"]))
+
+
 async def notify_customer_status_change(
     customer_telegram_id: int,
     new_status: str,

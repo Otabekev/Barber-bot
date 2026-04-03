@@ -5,12 +5,14 @@ from aiogram.types import (
     Message,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
     WebAppInfo,
 )
 
 from bot.i18n import t
 from bot.api_client import BackendClient
-from bot.handlers.start import get_lang
+from bot.handlers.start import get_lang, persistent_keyboard
 
 router = Router()
 
@@ -29,6 +31,38 @@ async def handle_register_shop(callback: CallbackQuery, mini_app_url: str):
         ]),
     )
     await callback.answer()
+
+
+@router.message(Command("setlocation"))
+async def cmd_setlocation(message: Message):
+    lang = get_lang(message.from_user.id)
+    await message.answer(
+        t("setlocation_prompt", lang),
+        reply_markup=ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text=t("setlocation_button", lang), request_location=True)]],
+            resize_keyboard=True,
+            one_time_keyboard=True,
+        ),
+    )
+
+
+@router.message(F.location)
+async def handle_location(message: Message, backend: BackendClient):
+    lang = get_lang(message.from_user.id)
+    lat = message.location.latitude
+    lng = message.location.longitude
+
+    ok = await backend.set_shop_location(message.from_user.id, lat, lng)
+    if ok:
+        await message.answer(
+            t("setlocation_saved", lang),
+            reply_markup=persistent_keyboard(),
+        )
+    else:
+        await message.answer(
+            t("setlocation_no_shop", lang),
+            reply_markup=persistent_keyboard(),
+        )
 
 
 @router.message(Command("bugun"))

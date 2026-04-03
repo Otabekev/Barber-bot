@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.database import get_db
@@ -8,8 +9,10 @@ from app.deps import get_current_user
 from app.models.user import User
 from app.models.shop import Shop
 from app.models.booking import Booking
+from app.models.staff import Staff
 from app.schemas.shop import ShopOut
 from app.schemas.user import UserOut
+from app.schemas.staff import StaffOut
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -71,6 +74,95 @@ async def admin_get_users(
 ):
     result = await db.execute(select(User).order_by(User.id.desc()))
     return result.scalars().all()
+
+
+@router.get("/staff", response_model=List[StaffOut])
+async def admin_get_pending_staff(
+    _: User = Depends(_require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Pending + all staff records for admin review."""
+    result = await db.execute(
+        select(Staff)
+        .options(selectinload(Staff.user))
+        .order_by(Staff.is_approved, Staff.id.desc())
+    )
+    staff_list = result.scalars().all()
+    outputs = []
+    for s in staff_list:
+        out = StaffOut.model_validate(s)
+        outputs.append(out)
+    return outputs
+
+
+@router.patch("/staff/{staff_id}/approve", response_model=StaffOut)
+async def admin_approve_staff(
+    staff_id: int,
+    _: User = Depends(_require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Staff).options(selectinload(Staff.user)).where(Staff.id == staff_id)
+    )
+    staff = result.scalar_one_or_none()
+    if staff is None:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    staff.is_approved = True
+    staff.is_rejected = False
+    await db.commit()
+    await db.refresh(staff)
+
+    # Notify staff member and shop owner
+    try:
+        shop_result = await db.execute(select(Shop).where(Shop.id == staff.shop_id))
+        shop = shop_result.scalar_one_or_none()
+        user_result = await db.execute(select(User).where(User.id == staff.user_id))
+        staff_user = user_result.scalar_one_or_none()
+        owner_result = await db.execute(select(User).where(User.id == shop.owner_id)) if shop else None
+
+        from app.services.notifications import notify_staff_approved, notify_owner_staff_joined
+        if staff_user:
+            await notify_staff_approved(staff_user.telegram_id, shop.name if shop else "", staff_user.language)
+        if owner_result and shop and staff_user:
+            owner = (await owner_result).scalar_one_or_none()
+            if owner and owner.id != staff.user_id:
+                await notify_owner_staff_joined(owner.telegram_id, staff_user.full_name, owner.language)
+    except Exception:
+        pass
+
+    return StaffOut.model_validate(staff)
+
+
+@router.patch("/staff/{staff_id}/reject", response_model=StaffOut)
+async def admin_reject_staff(
+    staff_id: int,
+    _: User = Depends(_require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Staff).options(selectinload(Staff.user)).where(Staff.id == staff_id)
+    )
+    staff = result.scalar_one_or_none()
+    if staff is None:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    staff.is_approved = False
+    staff.is_rejected = True
+    await db.commit()
+    await db.refresh(staff)
+
+    try:
+        shop_result = await db.execute(select(Shop).where(Shop.id == staff.shop_id))
+        shop = shop_result.scalar_one_or_none()
+        user_result = await db.execute(select(User).where(User.id == staff.user_id))
+        staff_user = user_result.scalar_one_or_none()
+
+        from app.services.notifications import notify_staff_rejected
+        if staff_user:
+            await notify_staff_rejected(staff_user.telegram_id, shop.name if shop else "", staff_user.language)
+    except Exception:
+        pass
+
+    return StaffOut.model_validate(staff)
 
 
 @router.get("/stats")

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     MINI_APP_URL: str = "https://your-frontend.up.railway.app"
     # Shared secret so the bot can call privileged backend endpoints
     BOT_SECRET: str = "changeme_bot_secret"
+    BOT_USERNAME: str = "your_bot"  # without @, used for deep links
 
     @property
     def async_database_url(self) -> str:

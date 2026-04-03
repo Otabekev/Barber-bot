@@ -21,7 +21,7 @@ function dateDays() {
   return days;
 }
 
-const STEPS = { SERVICE: "service", DATE: "date", SLOT: "slot", FORM: "form", DONE: "done" };
+const STEPS = { SERVICE: "service", BARBER: "barber", DATE: "date", SLOT: "slot", FORM: "form", DONE: "done" };
 
 /* ── Tiny reusable back-arrow button ─────────────────────────────────── */
 function BackBtn({ onClick }) {
@@ -95,6 +95,7 @@ export default function BookingFlow() {
   const [shopInfo, setShopInfo] = useState(null);
   const [step, setStep] = useState(null);
   const [selectedService, setSelectedService] = useState(preService || "haircut");
+  const [selectedStaff, setSelectedStaff] = useState(null); // { id, display_name }
   const [selectedDate, setSelectedDate] = useState(preDate);
   const [slots, setSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -105,29 +106,49 @@ export default function BookingFlow() {
   const nameRef = useRef(null);
   const dateRowRef = useRef(null);
 
+  const preStaffId = params.get("staff_id") ? Number(params.get("staff_id")) : null;
+
   useEffect(() => {
     if (!shopId) { navigate("/", { replace: true }); return; }
     getShopPublic(shopId)
       .then((info) => {
         setShopInfo(info);
+
+        // Handle pre-selected staff from bot
+        if (preStaffId && info.staff) {
+          const preStaff = info.staff.find((s) => s.id === preStaffId);
+          if (preStaff) setSelectedStaff(preStaff);
+        } else if (info.staff?.length === 1) {
+          // Auto-select if only one staff member
+          setSelectedStaff(info.staff[0]);
+        }
+
         // If both date and slot are pre-filled from bot quick-book, jump to form
         if (preDate && preSlot) {
           setStep(STEPS.FORM);
         } else if (preDate) {
-          // Date pre-selected — load slots and go to slot picker
           setStep(STEPS.SLOT);
-          getAvailableSlots(shopId, preDate, preService || "haircut")
+          const sid = preStaffId || info.staff?.[0]?.id || null;
+          getAvailableSlots(shopId, preDate, preService || "haircut", sid)
             .then((data) => setSlots(data.slots || []))
             .catch(() => setSlots([]));
         } else {
-          setStep(info.beard_duration ? STEPS.SERVICE : STEPS.DATE);
+          // Determine first step
+          const multiStaff = (info.staff?.length || 0) > 1;
+          if (multiStaff) {
+            setStep(STEPS.BARBER);
+          } else if (info.beard_duration) {
+            setStep(STEPS.SERVICE);
+          } else {
+            setStep(STEPS.DATE);
+          }
         }
       })
       .catch(() => {
-        setShopInfo({ slot_duration: 30, beard_duration: null });
+        setShopInfo({ slot_duration: 30, beard_duration: null, staff: [] });
         setStep(preDate && preSlot ? STEPS.FORM : STEPS.DATE);
       });
-  }, [shopId, navigate]);
+  }, [shopId, navigate]); // eslint-disable-line
 
   function fmtWeekdayShort(d) {
     return new Date(d + "T00:00:00").toLocaleDateString(DATE_LOCALE[lang], { weekday: "short" });
@@ -145,10 +166,10 @@ export default function BookingFlow() {
     return new Date(d + "T00:00:00").toLocaleDateString(DATE_LOCALE[lang], { weekday: "long" });
   }
 
-  async function loadSlots(date, svcType = selectedService) {
+  async function loadSlots(date, svcType = selectedService, staffObj = selectedStaff) {
     setSlotsLoading(true);
     try {
-      const data = await getAvailableSlots(shopId, date, svcType);
+      const data = await getAvailableSlots(shopId, date, svcType, staffObj?.id || null);
       setSlots(data.slots || []);
     } catch {
       setSlots([]);
@@ -156,6 +177,12 @@ export default function BookingFlow() {
     } finally {
       setSlotsLoading(false);
     }
+  }
+
+  function pickBarber(staffMember) {
+    setSelectedStaff(staffMember);
+    const hasBeard = !!shopInfo?.beard_duration;
+    setStep(hasBeard ? STEPS.SERVICE : STEPS.DATE);
   }
 
   function pickService(svc) {
@@ -182,6 +209,7 @@ export default function BookingFlow() {
     try {
       await createBooking({
         shop_id: shopId,
+        staff_id: selectedStaff?.id || null,
         booking_date: selectedDate,
         time_slot: selectedSlot,
         customer_name: name.trim(),
@@ -204,9 +232,14 @@ export default function BookingFlow() {
   const comboDur = hairDur + (beardDur || 15);
   const hasBeard = !!beardDur;
 
-  const visibleSteps = hasBeard
-    ? [STEPS.SERVICE, STEPS.DATE, STEPS.SLOT, STEPS.FORM]
-    : [STEPS.DATE, STEPS.SLOT, STEPS.FORM];
+  const multiStaff = (shopInfo?.staff?.length || 0) > 1;
+  const visibleSteps = [
+    ...(multiStaff ? [STEPS.BARBER] : []),
+    ...(hasBeard ? [STEPS.SERVICE] : []),
+    STEPS.DATE,
+    STEPS.SLOT,
+    STEPS.FORM,
+  ];
   const totalSteps = visibleSteps.length;
   const stepIdx = visibleSteps.indexOf(step);
 
@@ -307,14 +340,16 @@ export default function BookingFlow() {
   }
 
   const stepTitle =
+    step === STEPS.BARBER  ? t("book_pick_barber", lang) :
     step === STEPS.SERVICE ? t("pick_service", lang) :
     step === STEPS.DATE    ? t("book_pick_date", lang) :
     step === STEPS.SLOT    ? t("book_pick_slot", lang) :
     t("book_your_info", lang);
 
   const onBack =
-    step === STEPS.SERVICE ? null :
-    step === STEPS.DATE    ? (hasBeard ? () => setStep(STEPS.SERVICE) : null) :
+    step === STEPS.BARBER  ? null :
+    step === STEPS.SERVICE ? (multiStaff ? () => setStep(STEPS.BARBER) : null) :
+    step === STEPS.DATE    ? (hasBeard ? () => setStep(STEPS.SERVICE) : multiStaff ? () => setStep(STEPS.BARBER) : null) :
     step === STEPS.SLOT    ? () => setStep(STEPS.DATE) :
     () => setStep(STEPS.SLOT);
 
@@ -327,6 +362,41 @@ export default function BookingFlow() {
         total={totalSteps}
       />
       <Dots total={totalSteps} current={stepIdx} />
+
+      {/* ── BARBER ──────────────────────────────────────────────────────── */}
+      {step === STEPS.BARBER && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {(shopInfo?.staff || []).map((s) => (
+            <button
+              key={s.id}
+              onClick={() => pickBarber(s)}
+              style={{
+                display: "flex", alignItems: "center", gap: 14,
+                padding: "16px 20px", borderRadius: 18,
+                border: `1.5px solid ${selectedStaff?.id === s.id ? "var(--btn)" : "var(--border)"}`,
+                background: selectedStaff?.id === s.id ? "var(--btn-bg, var(--secondary-bg))" : "var(--bg)",
+                cursor: "pointer", textAlign: "left",
+              }}
+            >
+              <div style={{
+                width: 48, height: 48, borderRadius: "50%",
+                background: "var(--secondary-bg)", overflow: "hidden",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                {s.has_photo
+                  ? <img src={`/api/staff/photo/${s.id}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <User size={22} color="var(--hint)" />
+                }
+              </div>
+              <span style={{ fontWeight: 600, fontSize: 16 }}>
+                {s.display_name || t("unnamed_staff", lang)}
+              </span>
+              <ChevronRight size={18} color="var(--hint)" style={{ marginLeft: "auto" }} />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── SERVICE ─────────────────────────────────────────────────────── */}
       {step === STEPS.SERVICE && (

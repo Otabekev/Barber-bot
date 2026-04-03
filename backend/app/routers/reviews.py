@@ -43,6 +43,7 @@ async def submit_review(
     review = Review(
         booking_id=data.booking_id,
         shop_id=booking.shop_id,
+        staff_id=booking.staff_id,
         customer_id=current_user.id,
         customer_name=booking.customer_name,
         rating=data.rating,

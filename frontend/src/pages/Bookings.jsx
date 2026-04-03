@@ -253,23 +253,27 @@ const TAB_UPCOMING = "upcoming";
 const TAB_HISTORY  = "history";
 
 export default function Bookings() {
-  const { user, shop } = useStore();
+  const { user, shop, staffRecord, shopStaff } = useStore();
   const lang = user?.language || "uz";
+  const isOwner = shop && staffRecord && shop.owner_id === staffRecord.user_id;
+  const hasTeam = shopStaff.filter((s) => s.is_active && s.is_approved).length > 1;
+
   const [tab, setTab] = useState(TAB_TODAY);
   const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [filterStaffId, setFilterStaffId] = useState(null); // owner: filter by staff
 
   useEffect(() => {
-    if (!shop) { setLoading(false); return; }
+    if (!staffRecord) { setLoading(false); return; }
     setLoading(true);
     setLoadError(false);
-    // Fetch all bookings at once; we filter client-side for the 3 tabs
-    getShopBookings({})
+    const params = filterStaffId ? { staff_id: filterStaffId } : {};
+    getShopBookings(params)
       .then(setAllBookings)
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, [shop]);
+  }, [staffRecord, filterStaffId]);
 
   const handleStatusChange = (updated) =>
     setAllBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
@@ -296,7 +300,7 @@ export default function Bookings() {
     }, {});
   }
 
-  if (!shop) {
+  if (!staffRecord) {
     return (
       <div className="empty-state">
         <Store size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
@@ -328,6 +332,35 @@ export default function Bookings() {
   return (
     <div>
       <h1 className="section-title">{t("bookings_title", lang)}</h1>
+
+      {/* Staff filter pills — owner only, only when team has multiple members */}
+      {isOwner && hasTeam && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+          <button
+            onClick={() => setFilterStaffId(null)}
+            style={{
+              padding: "5px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+              background: filterStaffId === null ? "var(--btn)" : "var(--secondary-bg)",
+              color: filterStaffId === null ? "var(--btn-text)" : "var(--hint)",
+            }}
+          >
+            {t("all_staff", lang)}
+          </button>
+          {shopStaff.filter((s) => s.is_active && s.is_approved).map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setFilterStaffId(s.id)}
+              style={{
+                padding: "5px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                background: filterStaffId === s.id ? "var(--btn)" : "var(--secondary-bg)",
+                color: filterStaffId === s.id ? "var(--btn-text)" : "var(--hint)",
+              }}
+            >
+              {s.display_name || t("unnamed_staff", lang)}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Tab bar */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--secondary-bg)", borderRadius: 12, padding: 4 }}>

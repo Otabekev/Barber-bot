@@ -13,4 +13,6 @@ class User(Base):
     language = Column(String(10), default="uz")
     is_admin = Column(Boolean, default=False)
 
-    shops = relationship("Shop", back_populates="owner", cascade="all, delete-orphan")
+    shops         = relationship("Shop", back_populates="owner", cascade="all, delete-orphan")
+    staff_records = relationship("Staff", back_populates="user", foreign_keys="Staff.user_id",
+                                 cascade="all, delete-orphan")

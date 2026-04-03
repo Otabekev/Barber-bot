@@ -55,16 +55,38 @@ class BackendClient:
             pass
         return None
 
-    async def get_quick_slots(self, shop_id: int, date_str: str, service: str = "haircut") -> list[str]:
+    async def get_quick_slots(
+        self, shop_id: int, date_str: str, service: str = "haircut", staff_id: int | None = None
+    ) -> list[str]:
+        params: dict = {"shop_id": shop_id, "date": date_str, "service": service}
+        if staff_id is not None:
+            params["staff_id"] = staff_id
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(
                 f"{self._base}/api/bot/quick-slots",
-                params={"shop_id": shop_id, "date": date_str, "service": service},
+                params=params,
                 headers=self._headers,
             )
             if resp.status_code == 200:
                 return resp.json().get("slots", [])
             return []
+
+    async def get_invite_info(self, token: str) -> dict | None:
+        """Fetch invite metadata for display before accepting (uses JWT-auth endpoint)."""
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(f"{self._base}/api/staff/invite/{token}")
+            if resp.status_code == 200:
+                return resp.json()
+        return None
+
+    async def set_shop_location(self, telegram_id: int, latitude: float, longitude: float) -> bool:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(
+                f"{self._base}/api/bot/set-shop-location",
+                json={"telegram_id": telegram_id, "latitude": latitude, "longitude": longitude},
+                headers=self._headers,
+            )
+            return resp.status_code == 200
 
     async def cancel_from_reminder(self, booking_id: int, telegram_id: int) -> dict:
         async with httpx.AsyncClient(timeout=5) as client:

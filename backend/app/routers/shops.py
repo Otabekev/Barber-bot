@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import Response
@@ -13,6 +14,7 @@ from app.models.shop import Shop
 from app.models.work_schedule import WorkSchedule
 from app.models.booking import Booking
 from app.models.blocked_slot import BlockedSlot
+from app.models.staff import Staff
 from app.schemas.shop import ShopCreate, ShopUpdate, ShopOut, UZBEKISTAN_REGIONS
 from app.services.slot_utils import get_service_duration, times_overlap
 
@@ -138,16 +140,34 @@ async def get_shop_photo(shop_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/{shop_id}/public")
 async def get_shop_public(shop_id: int, db: AsyncSession = Depends(get_db)):
-    """Public: lightweight shop info (name, durations) used by the booking flow."""
+    """Public: lightweight shop info + active approved staff list used by the booking flow."""
     result = await db.execute(select(Shop).where(Shop.id == shop_id, Shop.is_active == True))
     shop = result.scalar_one_or_none()
     if shop is None:
         raise HTTPException(status_code=404, detail="Shop not found")
+
+    staff_result = await db.execute(
+        select(Staff).where(
+            Staff.shop_id == shop_id,
+            Staff.is_active == True,
+            Staff.is_approved == True,
+        ).order_by(Staff.created_at)
+    )
+    staff_list = staff_result.scalars().all()
+
     return {
         "id": shop.id,
         "name": shop.name,
         "slot_duration": shop.slot_duration,
         "beard_duration": shop.beard_duration,
+        "staff": [
+            {
+                "id": s.id,
+                "display_name": s.display_name,
+                "has_photo": s.has_photo,
+            }
+            for s in staff_list
+        ],
     }
 
 
@@ -156,9 +176,10 @@ async def get_available_slots(
     shop_id: int,
     date: str = Query(..., description="Date in YYYY-MM-DD format"),
     service_type: str = Query("haircut", description="Service type: haircut | beard | combo"),
+    staff_id: Optional[int] = Query(None, description="Staff member ID to check availability for"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return available start times for a given service type on a given date."""
+    """Return available start times for a given service type on a given date (scoped to staff_id)."""
     try:
         target_date = datetime.strptime(date, "%Y-%m-%d").date()
     except ValueError:
@@ -169,10 +190,20 @@ async def get_available_slots(
     if shop is None:
         raise HTTPException(status_code=404, detail="Shop not found")
 
-    day_of_week = target_date.weekday()  # 0=Monday
+    # Resolve which staff member's schedule/slots to use
+    target_staff_id = staff_id
+    if target_staff_id is None:
+        owner_staff = await db.execute(
+            select(Staff).where(Staff.shop_id == shop_id, Staff.user_id == shop.owner_id)
+        )
+        owner_s = owner_staff.scalar_one_or_none()
+        if owner_s:
+            target_staff_id = owner_s.id
+
+    day_of_week = target_date.weekday()
     sched_result = await db.execute(
         select(WorkSchedule).where(
-            WorkSchedule.shop_id == shop_id,
+            WorkSchedule.staff_id == target_staff_id,
             WorkSchedule.day_of_week == day_of_week,
             WorkSchedule.is_working == True,
         )
@@ -181,7 +212,6 @@ async def get_available_slots(
     if schedule is None:
         return {"date": date, "slots": [], "all_slots": [], "blocked": []}
 
-    # Generate candidate start times at the finest interval (min of haircut / beard duration)
     open_h, open_m = map(int, schedule.open_time.split(":"))
     close_h, close_m = map(int, schedule.close_time.split(":"))
     current_dt = datetime(2000, 1, 1, open_h, open_m)
@@ -198,36 +228,32 @@ async def get_available_slots(
 
     req_duration = get_service_duration(shop, service_type)
 
-    # Fetch active bookings for this date
+    # Fetch active bookings for this staff member on this date
     bookings_result = await db.execute(
         select(Booking).where(
-            Booking.shop_id == shop_id,
+            Booking.staff_id == target_staff_id,
             Booking.booking_date == target_date,
             Booking.status.in_(["pending", "confirmed"]),
         )
     )
     active_bookings = bookings_result.scalars().all()
 
-    # Fetch blocked slots
+    # Fetch blocked slots for this staff member
     blocked_result = await db.execute(
         select(BlockedSlot.time_slot).where(
-            BlockedSlot.shop_id == shop_id,
+            BlockedSlot.staff_id == target_staff_id,
             BlockedSlot.block_date == target_date,
         )
     )
     blocked = {row[0] for row in blocked_result.all()}
 
-    # Filter: a candidate is available if:
-    # 1. The requested time range [candidate, candidate+req_duration) doesn't overlap any booking
-    # 2. The requested time range fits before close_time
-    # 3. The candidate itself is not blocked
     available: list[str] = []
     for slot in all_slots:
         if slot in blocked:
             continue
         slot_end_dt = datetime.strptime(slot, "%H:%M") + timedelta(minutes=req_duration)
         if slot_end_dt > end_dt:
-            continue  # would run past closing time
+            continue
         overlaps = any(
             times_overlap(slot, req_duration, b.time_slot, get_service_duration(shop, b.service_type))
             for b in active_bookings

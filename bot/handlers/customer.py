@@ -129,18 +129,38 @@ async def _show_shops(callback: CallbackQuery, region: str, district, lang: str,
 
     # Send each shop as a separate message with a "Book" WebApp button
     for shop in shops:
-        book_url = f"{mini_app_url}/book?shop_id={shop['id']}"
+        staff_list = shop.get("staff") or []
         has_beard = 1 if shop.get("beard_duration") else 0
-        markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
+        multi_staff = len(staff_list) > 1
+
+        if multi_staff:
+            # Show barber picker buttons
+            barber_rows = []
+            for s in staff_list:
+                name = s.get("display_name") or "Barber"
+                barber_rows.append([InlineKeyboardButton(
+                    text=f"✂️ {name}",
+                    callback_data=f"pick_barber:{shop['id']}:{s['id']}:{today_str}:{has_beard}",
+                )])
+            barber_rows.append([InlineKeyboardButton(
                 text=t("book_button", lang),
-                web_app=WebAppInfo(url=book_url),
-            )],
-            [InlineKeyboardButton(
-                text=t("quick_slots_btn", lang),
-                callback_data=f"qsvc:{shop['id']}:{today_str}:{has_beard}",
-            )],
-        ])
+                web_app=WebAppInfo(url=f"{mini_app_url}/book?shop_id={shop['id']}"),
+            )])
+            markup = InlineKeyboardMarkup(inline_keyboard=barber_rows)
+        else:
+            # Single staff (or none) — use original flow, embed staff_id if available
+            sid = staff_list[0]["id"] if staff_list else None
+            book_url = f"{mini_app_url}/book?shop_id={shop['id']}" + (f"&staff_id={sid}" if sid else "")
+            markup = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text=t("book_button", lang),
+                    web_app=WebAppInfo(url=book_url),
+                )],
+                [InlineKeyboardButton(
+                    text=t("quick_slots_btn", lang),
+                    callback_data=f"qsvc:{shop['id']}:{sid or ''}:{today_str}:{has_beard}",
+                )],
+            ])
 
         desc = (shop.get("description") or "").strip()
         approved_mark = " ✅" if shop.get("is_approved") else ""
@@ -166,43 +186,86 @@ async def _show_shops(callback: CallbackQuery, region: str, district, lang: str,
                     parse_mode="HTML",
                     reply_markup=markup,
                 )
+                if shop.get("latitude") and shop.get("longitude"):
+                    await callback.message.answer_location(
+                        latitude=shop["latitude"],
+                        longitude=shop["longitude"],
+                    )
                 continue
 
         await callback.message.answer(card_text, parse_mode="HTML", reply_markup=markup)
+        if shop.get("latitude") and shop.get("longitude"):
+            await callback.message.answer_location(
+                latitude=shop["latitude"],
+                longitude=shop["longitude"],
+            )
+
+
+@router.callback_query(F.data.startswith("pick_barber:"))
+async def handle_pick_barber(callback: CallbackQuery, mini_app_url: str):
+    """Customer picked a specific barber — show quick slots or open mini app."""
+    # callback_data: "pick_barber:{shop_id}:{staff_id}:{date}:{has_beard}"
+    parts = callback.data.split(":")
+    shop_id = int(parts[1])
+    staff_id = int(parts[2])
+    date_str = parts[3]
+    has_beard = parts[4] == "1" if len(parts) > 4 else False
+    lang = get_lang(callback.from_user.id)
+
+    book_url = f"{mini_app_url}/book?shop_id={shop_id}&staff_id={staff_id}"
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text=t("book_button", lang),
+            web_app=WebAppInfo(url=book_url),
+        )],
+        [InlineKeyboardButton(
+            text=t("quick_slots_btn", lang),
+            callback_data=f"qsvc:{shop_id}:{staff_id}:{date_str}:{1 if has_beard else 0}",
+        )],
+    ])
+    await callback.message.answer(
+        t("pick_barber_bot", lang),
+        reply_markup=markup,
+    )
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("qsvc:"))
 async def handle_service_select(callback: CallbackQuery, backend: BackendClient, mini_app_url: str):
     """Show service selection buttons, or skip straight to slots if no beard service."""
-    parts = callback.data.split(":")  # ["qsvc", shop_id, date, has_beard]
+    parts = callback.data.split(":")  # ["qsvc", shop_id, staff_id_or_empty, date, has_beard]
     shop_id = int(parts[1])
-    date_str = parts[2]
-    has_beard = parts[3] == "1" if len(parts) > 3 else False
+    # staff_id may be empty string if no staff was selected
+    staff_id_raw = parts[2] if len(parts) > 2 else ""
+    staff_id = int(staff_id_raw) if staff_id_raw.isdigit() else None
+    date_str = parts[3] if len(parts) > 3 else str(_date.today())
+    has_beard = parts[4] == "1" if len(parts) > 4 else False
     lang = get_lang(callback.from_user.id)
 
     if not has_beard:
         # No beard service — jump straight to haircut slots
-        slots = await backend.get_quick_slots(shop_id, date_str, service="haircut")
+        slots = await backend.get_quick_slots(shop_id, date_str, service="haircut", staff_id=staff_id)
         if not slots:
             await callback.answer(t("no_slots_today", lang), show_alert=True)
             return
-        await _send_slots_keyboard(callback, shop_id, date_str, "haircut", slots, lang, mini_app_url)
+        await _send_slots_keyboard(callback, shop_id, date_str, "haircut", slots, lang, mini_app_url, staff_id=staff_id)
         await callback.answer()
         return
 
     # Has beard service — ask which service
+    sid_part = f":{staff_id}" if staff_id else ":"
     rows = [
         [InlineKeyboardButton(
             text=t("svc_haircut", lang),
-            callback_data=f"qslots:{shop_id}:{date_str}:haircut",
+            callback_data=f"qslots:{shop_id}{sid_part}:{date_str}:haircut",
         )],
         [InlineKeyboardButton(
             text=t("svc_beard", lang),
-            callback_data=f"qslots:{shop_id}:{date_str}:beard",
+            callback_data=f"qslots:{shop_id}{sid_part}:{date_str}:beard",
         )],
         [InlineKeyboardButton(
             text=t("svc_combo", lang),
-            callback_data=f"qslots:{shop_id}:{date_str}:combo",
+            callback_data=f"qslots:{shop_id}{sid_part}:{date_str}:combo",
         )],
     ]
     await callback.message.answer(
@@ -215,19 +278,22 @@ async def handle_service_select(callback: CallbackQuery, backend: BackendClient,
 @router.callback_query(F.data.startswith("qslots:"))
 async def handle_quick_slots(callback: CallbackQuery, backend: BackendClient, mini_app_url: str):
     """Fetch and show available slots for the chosen service."""
-    parts = callback.data.split(":")  # ["qslots", shop_id, date, service]
+    # Format: "qslots:{shop_id}:{staff_id_or_empty}:{date}:{service}"
+    parts = callback.data.split(":")
     shop_id = int(parts[1])
-    date_str = parts[2]
-    service = parts[3] if len(parts) > 3 else "haircut"
+    staff_id_raw = parts[2] if len(parts) > 2 else ""
+    staff_id = int(staff_id_raw) if staff_id_raw.isdigit() else None
+    date_str = parts[3] if len(parts) > 3 else str(_date.today())
+    service = parts[4] if len(parts) > 4 else "haircut"
     lang = get_lang(callback.from_user.id)
 
-    slots = await backend.get_quick_slots(shop_id, date_str, service=service)
+    slots = await backend.get_quick_slots(shop_id, date_str, service=service, staff_id=staff_id)
 
     if not slots:
         await callback.answer(t("no_slots_today", lang), show_alert=True)
         return
 
-    await _send_slots_keyboard(callback, shop_id, date_str, service, slots, lang, mini_app_url)
+    await _send_slots_keyboard(callback, shop_id, date_str, service, slots, lang, mini_app_url, staff_id=staff_id)
     await callback.answer()
 
 
@@ -239,14 +305,18 @@ async def _send_slots_keyboard(
     slots: list,
     lang: str,
     mini_app_url: str,
+    staff_id: int | None = None,
 ):
     """Build and send the inline keyboard of slot buttons."""
     rows = []
     row = []
+    sid_suffix = f":{staff_id}" if staff_id else ":"
     for slot in slots:
+        # callback_data: "book_slot:{shop_id}:{staff_id_or_empty}:{date}:{HH}:{MM}:{service}"
+        h, m = slot.split(":")
         row.append(InlineKeyboardButton(
             text=slot,
-            callback_data=f"book_slot:{shop_id}:{date_str}:{slot}:{service}",
+            callback_data=f"book_slot:{shop_id}{sid_suffix}:{date_str}:{h}:{m}:{service}",
         ))
         if len(row) == 3:
             rows.append(row)
@@ -254,9 +324,10 @@ async def _send_slots_keyboard(
     if row:
         rows.append(row)
 
+    book_url = f"{mini_app_url}/book?shop_id={shop_id}" + (f"&staff_id={staff_id}" if staff_id else "")
     rows.append([InlineKeyboardButton(
         text=t("book_button", lang),
-        web_app=WebAppInfo(url=f"{mini_app_url}/book?shop_id={shop_id}"),
+        web_app=WebAppInfo(url=book_url),
     )])
 
     await callback.message.answer(
@@ -269,15 +340,20 @@ async def _send_slots_keyboard(
 @router.callback_query(F.data.startswith("book_slot:"))
 async def handle_book_slot(callback: CallbackQuery, mini_app_url: str):
     """Open mini app pre-filled with chosen date + slot + service."""
-    # callback_data format: "book_slot:{shop_id}:{date}:{HH}:{MM}:{service}"
-    # split into at most 6 parts; service is optional (defaults to haircut)
-    parts = callback.data.split(":", 5)
+    # callback_data format: "book_slot:{shop_id}:{staff_id_or_empty}:{date}:{HH}:{MM}:{service}"
+    parts = callback.data.split(":", 7)
     shop_id = parts[1]
-    date_str = parts[2]
-    slot = f"{parts[3]}:{parts[4]}"  # reassemble "HH:MM"
-    service = parts[5] if len(parts) > 5 else "haircut"
+    staff_id_raw = parts[2] if len(parts) > 2 else ""
+    staff_id = staff_id_raw if staff_id_raw.isdigit() else None
+    date_str = parts[3] if len(parts) > 3 else ""
+    hh = parts[4] if len(parts) > 4 else "00"
+    mm = parts[5] if len(parts) > 5 else "00"
+    slot = f"{hh}:{mm}"
+    service = parts[6] if len(parts) > 6 else "haircut"
 
     url = f"{mini_app_url}/book?shop_id={shop_id}&date={date_str}&slot={slot}&service={service}"
+    if staff_id:
+        url += f"&staff_id={staff_id}"
     lang = get_lang(callback.from_user.id)
 
     await callback.answer()

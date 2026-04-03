@@ -125,5 +125,7 @@ class ShopOut(BaseModel):
     beard_duration: Optional[int] = None
     avg_rating: Optional[float] = None
     review_count: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
     model_config = {"from_attributes": True}

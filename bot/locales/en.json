@@ -35,5 +35,15 @@
   "svc_haircut": "✂️ Haircut",
   "svc_beard": "🧔 Beard trim",
   "svc_combo": "✂️+🧔 Combo",
-  "rating_line": "⭐ {rating} ({count} reviews)"
+  "rating_line": "⭐ {rating} ({count} reviews)",
+  "setlocation_prompt": "📍 Share your shop's physical location. Tap the button below:",
+  "setlocation_button": "📍 Share Location",
+  "setlocation_saved": "✅ Location saved! Customers will see it on the map.",
+  "setlocation_no_shop": "❌ No shop found for your account. Please register your shop first.",
+  "invite_bot_msg": "🎉 You've been invited to join <b>{shop}</b>!\n\nTap the button below to join.",
+  "invite_open_btn": "Join the team",
+  "invite_not_found_bot": "❌ Invite not found or expired.",
+  "invite_expired_bot": "❌ This invite link has expired.",
+  "invite_used_bot": "❌ This invite link has already been used.",
+  "pick_barber_bot": "Which barber would you like to book?"
 }

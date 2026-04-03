@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import useStore from "./store/useStore";
-import { authTelegram, authDevLogin, getMyShop } from "./api/client";
+import { authTelegram, authDevLogin, getMyShop, getMyStaffRecord, getShopStaff } from "./api/client";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import ShopSetup from "./pages/ShopSetup";
@@ -12,6 +12,9 @@ import BookingFlow from "./pages/BookingFlow";
 import MyBookings from "./pages/MyBookings";
 import AdminPanel from "./pages/AdminPanel";
 import ReviewPage from "./pages/ReviewPage";
+import Team from "./pages/Team";
+import JoinShop from "./pages/JoinShop";
+import StaffProfile from "./pages/StaffProfile";
 
 // Set VITE_DEV_BYPASS_TELEGRAM=true in frontend/.env.local to skip Telegram auth
 const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_TELEGRAM === "true";
@@ -22,11 +25,11 @@ function log(...args) {
 }
 
 function AppRoutes() {
-  // If the app is opened with ?shop_id=X (from bot), go straight to booking flow
-  // If opened with ?booking_id=X (review request), go to review page
   const [searchParams] = useSearchParams();
   const shopId = searchParams.get("shop_id");
   const reviewBookingId = searchParams.get("booking_id");
+  const joinToken = searchParams.get("join");
+
   if (shopId) {
     return (
       <Layout>
@@ -47,6 +50,16 @@ function AppRoutes() {
       </Layout>
     );
   }
+  if (joinToken) {
+    return (
+      <Layout>
+        <Routes>
+          <Route path="*" element={<Navigate to={`/join?join=${joinToken}`} replace />} />
+          <Route path="/join" element={<JoinShop />} />
+        </Routes>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -60,6 +73,9 @@ function AppRoutes() {
         <Route path="/my-bookings" element={<MyBookings />} />
         <Route path="/review"      element={<ReviewPage />} />
         <Route path="/admin"       element={<AdminPanel />} />
+        <Route path="/team"        element={<Team />} />
+        <Route path="/join"        element={<JoinShop />} />
+        <Route path="/profile"     element={<StaffProfile />} />
         <Route path="*"            element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
@@ -67,7 +83,7 @@ function AppRoutes() {
 }
 
 export default function App() {
-  const { setAuth, setAuthError, setShop, isAuthLoading, authError } = useStore();
+  const { setAuth, setAuthError, setShop, setStaffRecord, setShopStaff, isAuthLoading, authError } = useStore();
   const [initDone, setInitDone] = useState(false);
 
   useEffect(() => {
@@ -92,6 +108,12 @@ export default function App() {
             return null;
           });
           if (shop) setShop(shop);
+          const staffRec = await getMyStaffRecord().catch(() => null);
+          if (staffRec) {
+            setStaffRecord(staffRec);
+            const allStaff = await getShopStaff().catch(() => []);
+            setShopStaff(allStaff);
+          }
         } else {
           log("No stored token — calling /auth/dev-login to get a real JWT");
           try {
@@ -100,6 +122,12 @@ export default function App() {
             setAuth(access_token, user);
             const shop = await getMyShop().catch(() => null);
             if (shop) setShop(shop);
+            const staffRec2 = await getMyStaffRecord().catch(() => null);
+            if (staffRec2) {
+              setStaffRecord(staffRec2);
+              const allStaff2 = await getShopStaff().catch(() => []);
+              setShopStaff(allStaff2);
+            }
           } catch (e) {
             const detail = e.response?.data?.detail || e.message;
             log("Dev login failed:", detail);
@@ -161,6 +189,12 @@ export default function App() {
         if (shop) {
           log("Shop loaded:", shop.name);
           setShop(shop);
+        }
+        const staffRec = await getMyStaffRecord().catch(() => null);
+        if (staffRec) {
+          setStaffRecord(staffRec);
+          const allStaff = await getShopStaff().catch(() => []);
+          setShopStaff(allStaff);
         }
       } catch (e) {
         const detail =

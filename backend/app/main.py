@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
 from app.routers import auth, shops, schedules, bookings, slots
-from app.routers import admin, bot_api, reviews
+from app.routers import admin, bot_api, reviews, staff
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
@@ -49,6 +49,7 @@ app.include_router(slots.router, prefix=API_PREFIX)
 app.include_router(admin.router, prefix=API_PREFIX)
 app.include_router(bot_api.router, prefix=API_PREFIX)
 app.include_router(reviews.router, prefix=API_PREFIX)
+app.include_router(staff.router, prefix=API_PREFIX)
 
 
 @app.get("/", tags=["health"])

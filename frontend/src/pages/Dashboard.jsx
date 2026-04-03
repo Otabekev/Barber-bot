@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   CalendarCheck, Scissors, Clock, Calendar, Ban,
-  User, Phone, AlertCircle, Star,
+  User, Phone, AlertCircle, Star, Users,
 } from "lucide-react";
 import useStore from "../store/useStore";
 import { getShopBookings, getShopPhotoUrl, getMyShopReviews } from "../api/client";
@@ -22,8 +22,10 @@ function StarDisplay({ rating }) {
 }
 
 export default function Dashboard() {
-  const { user, shop } = useStore();
+  const { user, shop, staffRecord, shopStaff } = useStore();
   const lang = user?.language || "uz";
+  const isOwner = shop && staffRecord && shop.owner_id === staffRecord.user_id;
+  const hasTeam = shopStaff.filter((s) => s.is_active && s.is_approved).length > 1;
   const location = useLocation();
   const [stats, setStats] = useState({ today: 0, pending: 0, upcoming: 0 });
   const [recent, setRecent] = useState([]);
@@ -72,8 +74,38 @@ export default function Dashboard() {
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>{user?.full_name}</h1>
       </div>
 
-      {/* ── No shop: pure customer view ── */}
-      {!shop && !user?.is_admin && (
+      {/* ── Staff member (not owner, no shop in their own name) ── */}
+      {!shop && staffRecord && !user?.is_admin && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="card" style={{ padding: "16px" }}>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+              {staffRecord.display_name || user?.full_name}
+            </div>
+            {staffRecord.is_approved ? (
+              <span className="badge badge-approved">{t("status_approved", lang)}</span>
+            ) : staffRecord.is_rejected ? (
+              <span className="badge badge-rejected">{t("staff_rejected", lang)}</span>
+            ) : (
+              <span style={{ fontSize: 12, background: "#fef9c3", color: "#854d0e", borderRadius: 6, padding: "2px 8px" }}>
+                {t("staff_pending", lang)}
+              </span>
+            )}
+          </div>
+          {staffRecord.is_approved && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Link to="/bookings" className="btn btn-ghost" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <CalendarCheck size={IC} /> {t("nav_bookings", lang)}
+              </Link>
+              <Link to="/schedule" className="btn btn-ghost" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <Calendar size={IC} /> {t("schedule_btn", lang)}
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── No shop, no staff record: pure customer view ── */}
+      {!shop && !staffRecord && !user?.is_admin && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div className="card" style={{ textAlign: "center", padding: "28px 16px" }}>
             <CalendarCheck size={40} color={MUTED} style={{ margin: "0 auto 12px" }} />
@@ -255,6 +287,11 @@ export default function Dashboard() {
             <Link to="/block-slots" className="btn btn-ghost" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <Ban size={IC} /> {t("block_slots_btn", lang)}
             </Link>
+            {isOwner && (
+              <Link to="/team" className="btn btn-ghost" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, gridColumn: "1 / -1" }}>
+                <Users size={IC} /> {t("nav_team", lang)}
+              </Link>
+            )}
           </div>
           <Link to="/my-bookings" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, color: MUTED, fontSize: 13, marginTop: 12 }}>
             <CalendarCheck size={14} /> {t("view_bookings", lang)}

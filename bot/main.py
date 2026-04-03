@@ -31,9 +31,10 @@ async def main():
     dp["backend"] = backend
     dp["mini_app_url"] = config.MINI_APP_URL
 
-    dp.include_router(start.router)
-    dp.include_router(customer.router)
+    # barber and customer first — start.router has a catch-all that must come last
     dp.include_router(barber.router)
+    dp.include_router(customer.router)
+    dp.include_router(start.router)
 
     logger.info("Bot starting...")
     await bot.delete_webhook(drop_pending_updates=True)

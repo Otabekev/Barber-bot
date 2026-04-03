@@ -25,6 +25,22 @@ const useStore = create((set, get) => ({
   setShop: (shop) => set({ shop }),
   setShopLoading: (v) => set({ shopLoading: v }),
 
+  // ── Staff state ──────────────────────────────────────────────────────────
+  staffRecord: null,       // current user's own Staff row
+  shopStaff: [],           // all staff for the shop (owner view)
+  setStaffRecord: (staffRecord) => set({ staffRecord }),
+  setShopStaff: (shopStaff) => set({ shopStaff }),
+  // isOwner: derived — true when the user's shop.owner_id === staffRecord.user_id
+  get isOwner() {
+    const { shop, staffRecord } = get();
+    return !!(shop && staffRecord && shop.owner_id === staffRecord.user_id);
+  },
+  // hasTeam: derived — true when the shop has more than one approved active staff member
+  get hasTeam() {
+    const { shopStaff } = get();
+    return shopStaff.filter((s) => s.is_active && s.is_approved).length > 1;
+  },
+
   // ── Schedule state ──────────────────────────────────────────────────────
   schedule: [],
   setSchedule: (schedule) => set({ schedule }),

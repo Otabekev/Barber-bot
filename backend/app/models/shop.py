@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, LargeBinary
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, LargeBinary, Float
 from sqlalchemy.orm import relationship, deferred
 
 from app.database import Base
@@ -29,7 +29,11 @@ class Shop(Base):
     # Deferred: photo bytes are NOT loaded in regular shop list queries
     photo = deferred(Column(LargeBinary, nullable=True))
 
-    owner = relationship("User", back_populates="shops")
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
+    owner         = relationship("User", back_populates="shops")
+    staff_members = relationship("Staff", back_populates="shop", cascade="all, delete-orphan")
     schedules = relationship(
         "WorkSchedule", back_populates="shop", cascade="all, delete-orphan"
     )

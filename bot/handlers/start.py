@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, CommandObject
 from aiogram.types import (
     Message,
     CallbackQuery,
@@ -7,6 +7,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     ReplyKeyboardMarkup,
     KeyboardButton,
+    WebAppInfo,
 )
 
 from bot.i18n import t
@@ -65,6 +66,46 @@ async def handle_restart(message: Message):
     await message.answer(
         t("choose_language", "uz"),
         reply_markup=_language_keyboard(),
+    )
+
+
+@router.message(CommandStart(deep_link=True, magic=F.args.startswith("join_")))
+async def cmd_start_invite(message: Message, command: CommandObject, backend: BackendClient, mini_app_url: str):
+    """Deep link: t.me/BOT?start=join_TOKEN — show invite info and a button to open JoinShop."""
+    token = command.args[len("join_"):]
+    lang = get_lang(message.from_user.id)
+
+    invite_info = await backend.get_invite_info(token)
+
+    await message.answer(
+        t("restart_button", "uz"),
+        reply_markup=persistent_keyboard(),
+    )
+
+    if invite_info is None:
+        await message.answer(t("invite_not_found_bot", lang))
+        return
+
+    if invite_info.get("is_expired"):
+        await message.answer(t("invite_expired_bot", lang))
+        return
+
+    if invite_info.get("is_used"):
+        await message.answer(t("invite_used_bot", lang))
+        return
+
+    shop_name = invite_info.get("shop_name", "")
+    join_url = f"{mini_app_url}/?join={token}"
+
+    await message.answer(
+        t("invite_bot_msg", lang, shop=shop_name),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text=t("invite_open_btn", lang),
+                web_app=WebAppInfo(url=join_url),
+            )]
+        ]),
+        parse_mode="HTML",
     )
 
 

@@ -69,8 +69,10 @@ export const updateLanguage = (language) =>
 export const getMyShop = () => api.get("/shops/my").then((r) => r.data);
 export const createShop = (data) => api.post("/shops/", data).then((r) => r.data);
 export const updateShop = (data) => api.put("/shops/my", data).then((r) => r.data);
-export const getAvailableSlots = (shopId, date, serviceType = "haircut") =>
-  api.get(`/shops/${shopId}/available-slots`, { params: { date, service_type: serviceType } }).then((r) => r.data);
+export const getAvailableSlots = (shopId, date, serviceType = "haircut", staffId = null) =>
+  api.get(`/shops/${shopId}/available-slots`, {
+    params: { date, service_type: serviceType, ...(staffId ? { staff_id: staffId } : {}) },
+  }).then((r) => r.data);
 
 export const getShopPublic = (shopId) =>
   api.get(`/shops/${shopId}/public`).then((r) => r.data);
@@ -119,6 +121,34 @@ export const getMyBookings = () =>
 export const cancelMyBooking = (id) =>
   api.patch(`/bookings/${id}/cancel`).then((r) => r.data);
 
+// ── Staff ─────────────────────────────────────────────────────────────────────
+export const getMyStaffRecord = () =>
+  api.get("/staff/my").then((r) => r.data);
+export const getShopStaff = () =>
+  api.get("/staff/shop").then((r) => r.data);
+export const createInvite = () =>
+  api.post("/staff/invite").then((r) => r.data);
+export const getInviteInfo = (token) =>
+  api.get(`/staff/invite/${token}`).then((r) => r.data);
+export const acceptInvite = (token) =>
+  api.post(`/staff/invite/${token}/accept`).then((r) => r.data);
+export const removeStaff = (staffId) =>
+  api.delete(`/staff/${staffId}`).then((r) => r.data);
+export const updateMyStaffProfile = (data) =>
+  api.patch("/staff/my/profile", data).then((r) => r.data);
+export const uploadStaffPhoto = (file) => {
+  const form = new FormData();
+  form.append("file", file);
+  return api.post("/staff/my/photo", form).then((r) => r.data);
+};
+export const getStaffPhotoUrl = (staffId) => `${BASE_URL}/staff/photo/${staffId}`;
+
+// ── Schedules (owner managing other staff) ────────────────────────────────────
+export const getStaffSchedule = (staffId) =>
+  api.get(`/schedules/staff/${staffId}`).then((r) => r.data);
+export const updateStaffSchedule = (staffId, schedules) =>
+  api.put(`/schedules/staff/${staffId}`, { schedules }).then((r) => r.data);
+
 // ── Admin ─────────────────────────────────────────────────────────────────────
 export const adminGetShops = () =>
   api.get("/admin/shops").then((r) => r.data);
@@ -130,6 +160,12 @@ export const adminGetStats = () =>
   api.get("/admin/stats").then((r) => r.data);
 export const adminGetUsers = () =>
   api.get("/admin/users").then((r) => r.data);
+export const adminGetStaff = () =>
+  api.get("/admin/staff").then((r) => r.data);
+export const adminApproveStaff = (id) =>
+  api.patch(`/admin/staff/${id}/approve`).then((r) => r.data);
+export const adminRejectStaff = (id) =>
+  api.patch(`/admin/staff/${id}/reject`).then((r) => r.data);
 
 // ── Reviews ───────────────────────────────────────────────────────────────────
 export const submitReview = (data) =>
