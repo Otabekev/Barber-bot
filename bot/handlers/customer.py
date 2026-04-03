@@ -19,18 +19,9 @@ router = Router()
 REGIONS = [
     "Toshkent shahri",
     "Toshkent viloyati",
-    "Samarqand",
-    "Buxoro",
     "Farg'ona",
     "Andijon",
     "Namangan",
-    "Qashqadaryo",
-    "Surxondaryo",
-    "Xorazm",
-    "Navoiy",
-    "Jizzax",
-    "Sirdaryo",
-    "Qoraqalpog'iston",
 ]
 
 
