@@ -30,5 +30,10 @@
   "no_slots_today": "No available slots today",
   "slots_header": "📅 Available times on <b>{date}</b>:\n\nPick a time:",
   "slot_selected": "✅ You picked <b>{slot}</b>. Tap below to complete your booking:",
-  "open_booking_form": "📝 Book this slot"
+  "open_booking_form": "📝 Book this slot",
+  "choose_service": "✂️ Choose a service:",
+  "svc_haircut": "✂️ Haircut",
+  "svc_beard": "🧔 Beard trim",
+  "svc_combo": "✂️+🧔 Combo",
+  "rating_line": "⭐ {rating} ({count} reviews)"
 }

@@ -68,6 +68,11 @@ _MESSAGES = {
         "ru": "⭐ Оставить отзыв",
         "en": "⭐ Leave a review",
     },
+    "barber_message": {
+        "uz": "💬 <b>{shop}</b> dan xabar:\n\n{message}",
+        "ru": "💬 Сообщение от <b>{shop}</b>:\n\n{message}",
+        "en": "💬 Message from <b>{shop}</b>:\n\n{message}",
+    },
 }
 
 
@@ -188,6 +193,18 @@ async def send_review_request(
                 logger.warning("Review request sendMessage failed: %s", resp.text)
     except Exception as e:
         logger.warning("Failed to send review request: %s", e)
+
+
+async def notify_barber_message(
+    customer_telegram_id: int,
+    shop_name: str,
+    message: str,
+    customer_language: str = "uz",
+) -> None:
+    """Send a free-form message from the barber to the customer."""
+    lang = customer_language if customer_language in ("uz", "ru", "en") else "uz"
+    text = _MESSAGES["barber_message"][lang].format(shop=shop_name, message=message)
+    await _send(customer_telegram_id, text)
 
 
 async def notify_customer_status_change(

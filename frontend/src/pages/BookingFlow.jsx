@@ -88,12 +88,13 @@ export default function BookingFlow() {
   const shopId = Number(params.get("shop_id"));
   const preDate = params.get("date") || null;
   const preSlot = params.get("slot") || null;
+  const preService = params.get("service") || null;
   const { user } = useStore();
   const lang = user?.language || "uz";
 
   const [shopInfo, setShopInfo] = useState(null);
   const [step, setStep] = useState(null);
-  const [selectedService, setSelectedService] = useState("haircut");
+  const [selectedService, setSelectedService] = useState(preService || "haircut");
   const [selectedDate, setSelectedDate] = useState(preDate);
   const [slots, setSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -115,7 +116,7 @@ export default function BookingFlow() {
         } else if (preDate) {
           // Date pre-selected — load slots and go to slot picker
           setStep(STEPS.SLOT);
-          getAvailableSlots(shopId, preDate, "haircut")
+          getAvailableSlots(shopId, preDate, preService || "haircut")
             .then((data) => setSlots(data.slots || []))
             .catch(() => setSlots([]));
         } else {

@@ -7,7 +7,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.config import settings
 from app.database import get_db
@@ -16,6 +16,7 @@ from app.models.shop import Shop
 from app.models.booking import Booking
 from app.models.work_schedule import WorkSchedule
 from app.models.blocked_slot import BlockedSlot
+from app.models.review import Review
 from app.schemas.shop import ShopOut
 from app.services.notifications import notify_barber_customer_cancelled
 from app.services.slot_utils import get_service_duration, times_overlap
@@ -63,7 +64,7 @@ async def get_districts(
     return {"region": region, "districts": districts}
 
 
-@router.get("/shops", response_model=List[ShopOut])
+@router.get("/shops")
 async def get_shops_by_region(
     region: str,
     district: str | None = None,
@@ -81,7 +82,29 @@ async def get_shops_by_region(
     result = await db.execute(
         select(Shop).where(*conditions).order_by(Shop.name)
     )
-    return result.scalars().all()
+    shops_list = result.scalars().all()
+    if not shops_list:
+        return []
+
+    # Compute average ratings for all fetched shops in one query
+    shop_ids = [s.id for s in shops_list]
+    rating_result = await db.execute(
+        select(
+            Review.shop_id,
+            func.avg(Review.rating).label("avg"),
+            func.count(Review.id).label("cnt"),
+        ).where(Review.shop_id.in_(shop_ids)).group_by(Review.shop_id)
+    )
+    ratings = {row.shop_id: (round(float(row.avg), 1), row.cnt) for row in rating_result}
+
+    out = []
+    for shop in shops_list:
+        d = ShopOut.model_validate(shop).model_dump()
+        avg, cnt = ratings.get(shop.id, (None, 0))
+        d["avg_rating"] = avg
+        d["review_count"] = cnt
+        out.append(d)
+    return out
 
 
 @router.get("/barber-today")
@@ -130,6 +153,7 @@ async def barber_today_schedule(
 async def get_quick_slots(
     shop_id: int = Query(...),
     date_str: str = Query(..., alias="date"),
+    service: str = Query("haircut"),
     _: None = Depends(_verify_bot_secret),
     db: AsyncSession = Depends(get_db),
 ):
@@ -160,7 +184,10 @@ async def get_quick_slots(
     if not schedule:
         return {"slots": []}
 
-    # Determine interval (finest granularity)
+    # Duration for the requested service
+    svc_duration = get_service_duration(shop, service)
+
+    # Determine interval (finest granularity so we show all possible starts)
     interval = shop.slot_duration
     if shop.beard_duration:
         interval = min(shop.slot_duration, shop.beard_duration)
@@ -192,7 +219,7 @@ async def get_quick_slots(
 
     available = []
     cur = open_minutes
-    while cur + shop.slot_duration <= close_minutes:
+    while cur + svc_duration <= close_minutes:
         h, m = divmod(cur, 60)
         slot_str = f"{h:02d}:{m:02d}"
 
@@ -200,7 +227,7 @@ async def get_quick_slots(
             overlaps = False
             for b in active_bookings:
                 b_dur = get_service_duration(shop, b.service_type)
-                if times_overlap(slot_str, shop.slot_duration, b.time_slot, b_dur):
+                if times_overlap(slot_str, svc_duration, b.time_slot, b_dur):
                     overlaps = True
                     break
             if not overlaps:

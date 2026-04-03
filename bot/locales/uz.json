@@ -30,5 +30,10 @@
   "no_slots_today": "Bugun bo'sh vaqt yo'q",
   "slots_header": "📅 <b>{date}</b> uchun bo'sh vaqtlar:\n\nVaqtni tanlang:",
   "slot_selected": "✅ <b>{slot}</b> tanlandi. Bron qilish uchun tugmani bosing:",
-  "open_booking_form": "📝 Bron qilish"
+  "open_booking_form": "📝 Bron qilish",
+  "choose_service": "✂️ Qaysi xizmatni tanlaysiz?",
+  "svc_haircut": "✂️ Soch olish",
+  "svc_beard": "🧔 Soqol",
+  "svc_combo": "✂️+🧔 Ikkalasi",
+  "rating_line": "⭐ {rating} ({count} ta sharh)"
 }

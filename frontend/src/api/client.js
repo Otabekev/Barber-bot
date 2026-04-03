@@ -94,6 +94,8 @@ export const getShopBookings = (params) =>
   api.get("/bookings/my-shop", { params }).then((r) => r.data);
 export const updateBookingStatus = (id, status) =>
   api.patch(`/bookings/${id}/status`, { status }).then((r) => r.data);
+export const sendMessageToCustomer = (id, message) =>
+  api.post(`/bookings/${id}/message`, { message }).then((r) => r.data);
 export const createBooking = (data) =>
   api.post("/bookings/", data).then((r) => r.data);
 

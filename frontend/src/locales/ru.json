@@ -183,5 +183,10 @@
   "book_combo_popular": "Популярно",
   "change": "Изменить",
   "btn_no_show": "Не пришёл",
-  "status_no_show": "Не пришёл"
+  "status_no_show": "Не пришёл",
+  "btn_message": "💬 Написать сообщение",
+  "message_placeholder": "Напишите сообщение клиенту...",
+  "btn_send": "Отправить",
+  "message_sent": "Сообщение отправлено ✓",
+  "no_telegram_linked": "У этого клиента не привязан Telegram"
 }

@@ -55,11 +55,11 @@ class BackendClient:
             pass
         return None
 
-    async def get_quick_slots(self, shop_id: int, date_str: str) -> list[str]:
+    async def get_quick_slots(self, shop_id: int, date_str: str, service: str = "haircut") -> list[str]:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(
                 f"{self._base}/api/bot/quick-slots",
-                params={"shop_id": shop_id, "date": date_str},
+                params={"shop_id": shop_id, "date": date_str, "service": service},
                 headers=self._headers,
             )
             if resp.status_code == 200:

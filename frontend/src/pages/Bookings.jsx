@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import useStore from "../store/useStore";
-import { getShopBookings, updateBookingStatus } from "../api/client";
+import { getShopBookings, updateBookingStatus, sendMessageToCustomer } from "../api/client";
 import { toast } from "../components/Layout";
 import { t, DATE_LOCALE } from "../i18n";
-import { User, Phone, Check, Store, Sun, CalendarX, Archive, AlertCircle, UserX } from "lucide-react";
+import { User, Phone, Check, Store, Sun, CalendarX, Archive, AlertCircle, UserX, MessageSquare, Send } from "lucide-react";
 
 const today = new Date().toISOString().slice(0, 10);
 
 // ── Booking card ────────────────────────────────────────────────────────────
 function BookingCard({ booking, onStatusChange, lang }) {
   const [loading, setLoading] = useState(false);
+  const [showMsg, setShowMsg] = useState(false);
+  const [msgText, setMsgText] = useState("");
+  const [msgSending, setMsgSending] = useState(false);
   const { status } = booking;
 
   function fmtFullDate(d) {
@@ -31,6 +34,22 @@ function BookingCard({ booking, onStatusChange, lang }) {
       toast(err.response?.data?.detail || t("update_failed", lang));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function sendMessage() {
+    if (!msgText.trim()) return;
+    setMsgSending(true);
+    try {
+      await sendMessageToCustomer(booking.id, msgText.trim());
+      toast(t("message_sent", lang));
+      setShowMsg(false);
+      setMsgText("");
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      toast(detail === "no_telegram" ? t("no_telegram_linked", lang) : t("update_failed", lang));
+    } finally {
+      setMsgSending(false);
     }
   }
 
@@ -102,6 +121,48 @@ function BookingCard({ booking, onStatusChange, lang }) {
         <div style={{ color: "var(--hint)", marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
           <Phone size={13} color="var(--hint)" /> {booking.customer_phone}
         </div>
+      </div>
+
+      {/* Send message to customer */}
+      <div style={{ marginBottom: 8 }}>
+        {!showMsg ? (
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            onClick={() => setShowMsg(true)}
+          >
+            <MessageSquare size={14} /> {t("btn_message", lang)}
+          </button>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <textarea
+              rows={3}
+              style={{ width: "100%", borderRadius: 8, border: "1px solid var(--secondary-bg)", padding: "8px 10px", fontSize: 14, resize: "none", boxSizing: "border-box" }}
+              placeholder={t("message_placeholder", lang)}
+              value={msgText}
+              onChange={(e) => setMsgText(e.target.value)}
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: 6 }}>
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
+                onClick={sendMessage}
+                disabled={msgSending || !msgText.trim()}
+              >
+                <Send size={14} /> {t("btn_send", lang)}
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ paddingLeft: 16, paddingRight: 16 }}
+                onClick={() => { setShowMsg(false); setMsgText(""); }}
+                disabled={msgSending}
+              >
+                {t("btn_cancel", lang)}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Actions */}

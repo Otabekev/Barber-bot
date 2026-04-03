@@ -30,5 +30,10 @@
   "no_slots_today": "Сегодня нет свободных слотов",
   "slots_header": "📅 Свободное время на <b>{date}</b>:\n\nВыберите время:",
   "slot_selected": "✅ Выбрано <b>{slot}</b>. Нажмите кнопку для записи:",
-  "open_booking_form": "📝 Записаться"
+  "open_booking_form": "📝 Записаться",
+  "choose_service": "✂️ Выберите услугу:",
+  "svc_haircut": "✂️ Стрижка",
+  "svc_beard": "🧔 Борода",
+  "svc_combo": "✂️+🧔 Комбо",
+  "rating_line": "⭐ {rating} ({count} отзывов)"
 }

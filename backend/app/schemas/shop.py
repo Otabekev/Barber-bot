@@ -174,5 +174,7 @@ class ShopOut(BaseModel):
     has_photo: bool = False
     district: Optional[str] = None
     beard_duration: Optional[int] = None
+    avg_rating: Optional[float] = None
+    review_count: Optional[int] = None
 
     model_config = {"from_attributes": True}

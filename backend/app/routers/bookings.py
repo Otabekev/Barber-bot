@@ -11,10 +11,16 @@ from app.models.user import User
 from app.models.shop import Shop
 from app.models.booking import Booking
 from app.schemas.booking import BookingCreate, BookingStatusUpdate, BookingOut, VALID_STATUSES
+from pydantic import BaseModel
+
+
+class MessageRequest(BaseModel):
+    message: str
 from app.services.notifications import (
     notify_barber_new_booking,
     notify_barber_customer_cancelled,
     notify_customer_status_change,
+    notify_barber_message,
     send_review_request,
 )
 from app.config import settings
@@ -160,6 +166,40 @@ async def update_booking_status(
                 ))
 
     return booking
+
+
+@router.post("/{booking_id}/message")
+async def send_message_to_customer(
+    booking_id: int,
+    data: MessageRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Barber sends a free-form message to the customer via Telegram."""
+    shop = await _get_owner_shop(current_user, db)
+
+    result = await db.execute(
+        select(Booking).where(Booking.id == booking_id, Booking.shop_id == shop.id)
+    )
+    booking = result.scalar_one_or_none()
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if not booking.customer_id:
+        raise HTTPException(status_code=400, detail="no_telegram")
+
+    customer_result = await db.execute(select(User).where(User.id == booking.customer_id))
+    customer = customer_result.scalar_one_or_none()
+    if not customer or not customer.telegram_id:
+        raise HTTPException(status_code=400, detail="no_telegram")
+
+    await notify_barber_message(
+        customer_telegram_id=customer.telegram_id,
+        shop_name=shop.name,
+        message=data.message,
+        customer_language=customer.language,
+    )
+    return {"ok": True}
 
 
 @router.get("/my", response_model=List[BookingOut])
