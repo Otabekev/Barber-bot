@@ -102,6 +102,8 @@ export const createBooking = (data) =>
 // ── Blocked Slots ─────────────────────────────────────────────────────────────
 export const getBlockedSlots = (params) =>
   api.get("/slots/blocked", { params }).then((r) => r.data);
+export const getBlockedDates = () =>
+  api.get("/slots/blocked-dates").then((r) => r.data);
 export const blockSlots = (block_date, time_slots) =>
   api.post("/slots/block", { block_date, time_slots }).then((r) => r.data);
 export const unblockSlots = (block_date, time_slots) =>

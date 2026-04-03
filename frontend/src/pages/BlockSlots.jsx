@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import useStore from "../store/useStore";
-import { getAvailableSlots, blockSlots, unblockSlots, blockDateRange, unblockDateRange } from "../api/client";
+import { getAvailableSlots, blockSlots, unblockSlots, blockDateRange, unblockDateRange, getBlockedDates } from "../api/client";
 import { toast } from "../components/Layout";
 import { t } from "../i18n";
-import { Palmtree, ChevronDown, ChevronUp, Store, MoonStar } from "lucide-react";
+import { Palmtree, ChevronDown, ChevronUp, Store, MoonStar, CalendarX, Trash2 } from "lucide-react";
 
 const today = new Date().toISOString().slice(0, 10);
 
-function VacationPanel({ lang, shopExists }) {
+function VacationPanel({ lang, shopExists, onChanged }) {
   const [open, setOpen] = useState(false);
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
@@ -23,6 +23,7 @@ function VacationPanel({ lang, shopExists }) {
       const res = await blockDateRange(startDate, endDate);
       toast(`✅ ${res.blocked_count} ${t("vacation_blocked_msg", lang)}`);
       setOpen(false);
+      if (onChanged) onChanged();
     } catch (err) {
       toast(err.response?.data?.detail || t("save_failed", lang));
     } finally {
@@ -37,6 +38,7 @@ function VacationPanel({ lang, shopExists }) {
       await unblockDateRange(startDate, endDate);
       toast(t("vacation_unblocked_msg", lang));
       setOpen(false);
+      if (onChanged) onChanged();
     } catch (err) {
       toast(err.response?.data?.detail || t("save_failed", lang));
     } finally {
@@ -102,6 +104,150 @@ function VacationPanel({ lang, shopExists }) {
   );
 }
 
+function BlockedDaysPanel({ lang, onRemoved }) {
+  const [open, setOpen] = useState(false);
+  const [days, setDays] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [removing, setRemoving] = useState(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    getBlockedDates()
+      .then(setDays)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { if (open) load(); }, [open, load]);
+
+  async function handleRemove(dateStr) {
+    setRemoving(dateStr);
+    try {
+      await unblockDateRange(dateStr, dateStr);
+      setDays((prev) => prev.filter((d) => d.date !== dateStr));
+      toast(t("blocked_days_removed", lang));
+      if (onRemoved) onRemoved();
+    } catch {
+      toast(t("save_failed", lang));
+    } finally {
+      setRemoving(null);
+    }
+  }
+
+  const upcoming = days.filter((d) => !d.is_past);
+  const past = days.filter((d) => d.is_past);
+
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", background: "none", border: "none", cursor: "pointer",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: 0, fontSize: 15, fontWeight: 700, color: "var(--text)",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <CalendarX size={16} color="var(--hint)" />
+          {t("blocked_days_title", lang)}
+          {days.filter((d) => !d.is_past).length > 0 && (
+            <span style={{
+              background: "#ff3b30", color: "#fff", borderRadius: 10,
+              fontSize: 11, padding: "1px 7px", fontWeight: 600,
+            }}>
+              {days.filter((d) => !d.is_past).length}
+            </span>
+          )}
+        </span>
+        {open ? <ChevronUp size={16} color="var(--hint)" /> : <ChevronDown size={16} color="var(--hint)" />}
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          {loading && <p style={{ fontSize: 13, color: "var(--hint)" }}>{t("loading", lang)}</p>}
+
+          {!loading && days.length === 0 && (
+            <p style={{ fontSize: 13, color: "var(--hint)", textAlign: "center", padding: "8px 0" }}>
+              {t("blocked_days_empty", lang)}
+            </p>
+          )}
+
+          {!loading && upcoming.length > 0 && (
+            <>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--hint)", textTransform: "uppercase", marginBottom: 8, letterSpacing: 0.5 }}>
+                {t("blocked_days_upcoming", lang)}
+              </p>
+              {upcoming.map((d) => (
+                <div key={d.date} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "8px 0", borderBottom: "1px solid var(--border)",
+                }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>
+                      {d.is_today
+                        ? `${d.date} · ${t("blocked_days_today", lang)}`
+                        : d.date}
+                    </span>
+                    <span style={{ fontSize: 12, color: "var(--hint)", marginLeft: 8 }}>
+                      {d.count} {t("blocked_days_slots", lang)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleRemove(d.date)}
+                    disabled={removing === d.date}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      color: "#ff3b30", padding: "4px 6px", borderRadius: 6,
+                      display: "flex", alignItems: "center", gap: 4, fontSize: 13,
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    {removing === d.date ? "…" : t("blocked_days_remove", lang)}
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+
+          {!loading && past.length > 0 && (
+            <>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--hint)", textTransform: "uppercase", margin: "12px 0 8px", letterSpacing: 0.5 }}>
+                {t("blocked_days_past", lang)}
+              </p>
+              {past.map((d) => (
+                <div key={d.date} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "8px 0", borderBottom: "1px solid var(--border)",
+                  opacity: 0.55,
+                }}>
+                  <div>
+                    <span style={{ fontSize: 14 }}>{d.date}</span>
+                    <span style={{ fontSize: 12, color: "var(--hint)", marginLeft: 8 }}>
+                      {d.count} {t("blocked_days_slots", lang)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleRemove(d.date)}
+                    disabled={removing === d.date}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      color: "var(--hint)", padding: "4px 6px", borderRadius: 6,
+                      display: "flex", alignItems: "center", gap: 4, fontSize: 13,
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    {removing === d.date ? "…" : t("blocked_days_remove", lang)}
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BlockSlots() {
   const { user, shop } = useStore();
   const lang = user?.language || "uz";
@@ -109,6 +255,9 @@ export default function BlockSlots() {
   const [slotData, setSlotData] = useState(null);
   const [saving, setSaving] = useState(false);
   const [pendingBlocked, setPendingBlocked] = useState(new Set());
+  const [blockedDaysKey, setBlockedDaysKey] = useState(0);
+
+  const refreshBlockedDays = useCallback(() => setBlockedDaysKey((k) => k + 1), []);
 
   useEffect(() => {
     if (!shop) return;
@@ -179,7 +328,8 @@ export default function BlockSlots() {
         {t("block_slots_hint", lang)}
       </p>
 
-      <VacationPanel lang={lang} shopExists={!!shop} />
+      <VacationPanel lang={lang} shopExists={!!shop} onChanged={refreshBlockedDays} />
+      <BlockedDaysPanel key={blockedDaysKey} lang={lang} onRemoved={refreshBlockedDays} />
 
       <div className="card">
         <div className="form-group" style={{ marginBottom: 0 }}>

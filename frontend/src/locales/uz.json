@@ -154,6 +154,15 @@
   "beard_duration_label": "Soqol xizmati davomiyligi",
   "beard_duration_none": "Yo'q (faqat soch kesish)",
 
+  "blocked_days_title": "Bloklangan kunlar",
+  "blocked_days_empty": "Bloklangan kunlar yo'q",
+  "blocked_days_upcoming": "Kelayotgan",
+  "blocked_days_past": "O'tib ketgan",
+  "blocked_days_today": "Bugun",
+  "blocked_days_slots": "ta vaqt bloklangan",
+  "blocked_days_remove": "O'chirish",
+  "blocked_days_removed": "O'chirildi",
+
   "vacation_title": "Ta'til / Dam olish kunlari",
   "vacation_hint": "Belgilangan kunlardagi barcha vaqtlarni bloklaydi. Allaqachon band qilingan vaqtlarga ta'sir qilmaydi.",
   "vacation_from": "Dan",

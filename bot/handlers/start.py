@@ -57,6 +57,11 @@ def persistent_keyboard() -> ReplyKeyboardMarkup:
 
 @router.message(F.text.in_(RESTART_BUTTON_TEXTS))
 async def handle_restart(message: Message):
+    # Re-attach the persistent keyboard in case it was dismissed, then show language pick
+    await message.answer(
+        t("restart_button", "uz"),
+        reply_markup=persistent_keyboard(),
+    )
     await message.answer(
         t("choose_language", "uz"),
         reply_markup=_language_keyboard(),
@@ -108,3 +113,19 @@ async def handle_help(callback: CallbackQuery):
         parse_mode="HTML",
     )
     await callback.answer()
+
+
+@router.message()
+async def handle_unknown(message: Message):
+    """Catch-all: any unrecognised text re-attaches the persistent keyboard and shows the main menu."""
+    lang = get_lang(message.from_user.id)
+    name = message.from_user.first_name or message.from_user.full_name or ""
+    await message.answer(
+        t("restart_button", "uz"),
+        reply_markup=persistent_keyboard(),
+    )
+    await message.answer(
+        t("main_menu", lang, name=name),
+        reply_markup=main_menu_keyboard(lang),
+        parse_mode="HTML",
+    )

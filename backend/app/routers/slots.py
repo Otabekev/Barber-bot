@@ -160,6 +160,34 @@ async def unblock_date_range(
     return {"message": "Range unblocked"}
 
 
+@router.get("/blocked-dates")
+async def get_blocked_dates(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns each date that has at least one blocked slot, with slot count and past/today/upcoming status."""
+    shop = await _get_owner_shop(current_user, db)
+
+    from sqlalchemy import func as sql_func
+    result = await db.execute(
+        select(BlockedSlot.block_date, sql_func.count(BlockedSlot.id).label("count"))
+        .where(BlockedSlot.shop_id == shop.id)
+        .group_by(BlockedSlot.block_date)
+        .order_by(BlockedSlot.block_date)
+    )
+
+    today = date.today()
+    return [
+        {
+            "date": str(row.block_date),
+            "count": row.count,
+            "is_past": row.block_date < today,
+            "is_today": row.block_date == today,
+        }
+        for row in result.all()
+    ]
+
+
 @router.post("/unblock", status_code=200)
 async def unblock_slots(
     data: UnblockSlotRequest,

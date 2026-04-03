@@ -154,6 +154,15 @@
   "beard_duration_label": "Beard service duration",
   "beard_duration_none": "None (haircut only)",
 
+  "blocked_days_title": "Blocked Days",
+  "blocked_days_empty": "No blocked days",
+  "blocked_days_upcoming": "Upcoming",
+  "blocked_days_past": "Past",
+  "blocked_days_today": "Today",
+  "blocked_days_slots": "slots blocked",
+  "blocked_days_remove": "Remove",
+  "blocked_days_removed": "Removed",
+
   "vacation_title": "Vacation / Days off",
   "vacation_hint": "Blocks all slots for the selected date range. Existing confirmed bookings are not affected.",
   "vacation_from": "From",

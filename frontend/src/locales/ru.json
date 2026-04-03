@@ -154,6 +154,15 @@
   "beard_duration_label": "Длительность услуги «борода»",
   "beard_duration_none": "Нет (только стрижка)",
 
+  "blocked_days_title": "Заблокированные дни",
+  "blocked_days_empty": "Нет заблокированных дней",
+  "blocked_days_upcoming": "Предстоящие",
+  "blocked_days_past": "Прошедшие",
+  "blocked_days_today": "Сегодня",
+  "blocked_days_slots": "слотов заблокировано",
+  "blocked_days_remove": "Удалить",
+  "blocked_days_removed": "Удалено",
+
   "vacation_title": "Отпуск / Выходные дни",
   "vacation_hint": "Блокирует все слоты в выбранном диапазоне. Уже подтверждённые записи не затрагиваются.",
   "vacation_from": "С",
