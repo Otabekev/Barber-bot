@@ -30,5 +30,4 @@ class Staff(Base):
     schedules = relationship("WorkSchedule", back_populates="staff", cascade="all, delete-orphan")
     blocked_slots = relationship("BlockedSlot", back_populates="staff", cascade="all, delete-orphan")
     bookings  = relationship("Booking", back_populates="staff")
-    invites   = relationship("StaffInvite", back_populates="shop", foreign_keys="StaffInvite.shop_id",
-                             primaryjoin="StaffInvite.shop_id == Staff.shop_id", viewonly=True)
+
