@@ -231,6 +231,7 @@
 
   "profile_title": "My Profile",
   "profile_subtitle": "Edit your name, photo, and bio",
+  "profile_info_title": "Personal info",
   "profile_display_name": "Display name",
   "profile_display_name_placeholder": "E.g. Akbar",
   "profile_phone": "Phone",

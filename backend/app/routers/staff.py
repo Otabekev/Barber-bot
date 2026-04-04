@@ -125,7 +125,9 @@ async def create_invite(
     if not shop.is_approved:
         raise HTTPException(status_code=403, detail="Shop must be approved before inviting staff")
 
-    token = secrets.token_hex(32)  # 64 hex chars
+    # 29 bytes = 58 hex chars. With the "join_" prefix (5 chars) that's 63 chars —
+    # safely under Telegram's 64-char deep link payload limit.
+    token = secrets.token_hex(29)
     expires = datetime.utcnow() + timedelta(hours=INVITE_EXPIRE_HOURS)
     invite = StaffInvite(
         shop_id=shop.id,
@@ -270,8 +272,8 @@ async def upload_my_photo(
     if file.content_type not in ("image/jpeg", "image/png", "image/webp"):
         raise HTTPException(status_code=400, detail="Unsupported image format")
     data = await file.read()
-    if len(data) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image too large (max 5 MB)")
+    if len(data) > 3 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large (max 3 MB)")
     staff.photo = data
     staff.photo_mime = file.content_type
     staff.has_photo = True

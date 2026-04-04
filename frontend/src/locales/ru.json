@@ -231,6 +231,7 @@
 
   "profile_title": "Мой профиль",
   "profile_subtitle": "Отредактируйте имя, фото и описание",
+  "profile_info_title": "Личные данные",
   "profile_display_name": "Отображаемое имя",
   "profile_display_name_placeholder": "Например: Акбар",
   "profile_phone": "Телефон",
