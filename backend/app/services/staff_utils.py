@@ -35,6 +35,58 @@ async def get_my_staff_optional(user: User, db: AsyncSession) -> Staff | None:
     return result.scalar_one_or_none()
 
 
+async def get_my_staff_owner_fallback(user: User, db: AsyncSession) -> Staff | None:
+    """Return approved staff record. For shop owners, auto-bootstraps a record if missing.
+
+    This self-heals shops that were created before the multi-staff migration ran,
+    or where the bootstrap INSERT failed silently. Non-owners still get None.
+    """
+    staff = await get_my_staff_optional(user, db)
+    if staff:
+        return staff
+
+    # Only heal for shop owners
+    shop_result = await db.execute(select(Shop).where(Shop.owner_id == user.id))
+    shop = shop_result.scalar_one_or_none()
+    if shop is None:
+        return None
+
+    # Check for an existing record that may be unapproved due to a missed bootstrap
+    any_result = await db.execute(
+        select(Staff).where(Staff.user_id == user.id, Staff.shop_id == shop.id)
+    )
+    existing = any_result.scalar_one_or_none()
+    if existing:
+        if not existing.is_approved or not existing.is_active:
+            existing.is_approved = True
+            existing.is_active = True
+            await db.commit()
+            await db.refresh(existing)
+        return existing
+
+    # No record at all: create one on demand (owner is always auto-approved)
+    new_staff = Staff(
+        shop_id=shop.id,
+        user_id=user.id,
+        display_name=user.full_name,
+        is_active=True,
+        is_approved=True,
+        is_rejected=False,
+    )
+    db.add(new_staff)
+    try:
+        await db.commit()
+        await db.refresh(new_staff)
+        return new_staff
+    except Exception:
+        # Concurrent request may have already created the record
+        await db.rollback()
+        retry = await db.execute(
+            select(Staff).where(Staff.user_id == user.id, Staff.shop_id == shop.id)
+        )
+        return retry.scalar_one_or_none()
+
+
 async def require_owner(staff: Staff, db: AsyncSession) -> Shop:
     """Verify that this staff member is the shop owner. Returns the Shop."""
     result = await db.execute(select(Shop).where(Shop.id == staff.shop_id))

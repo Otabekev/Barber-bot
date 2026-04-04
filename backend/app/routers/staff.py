@@ -15,7 +15,7 @@ from app.models.shop import Shop
 from app.models.staff import Staff
 from app.models.staff_invite import StaffInvite
 from app.schemas.staff import StaffOut, StaffUpdate, InviteOut, InviteInfo, StaffUserInfo
-from app.services.staff_utils import get_my_staff, get_my_staff_optional, require_owner, get_staff_for_shop
+from app.services.staff_utils import get_my_staff, get_my_staff_optional, get_my_staff_owner_fallback, require_owner, get_staff_for_shop
 
 router = APIRouter(prefix="/staff", tags=["staff"])
 
@@ -66,8 +66,8 @@ async def get_my_staff_record(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return the current user's staff record (or null if none)."""
-    staff = await get_my_staff_optional(current_user, db)
+    """Return the current user's staff record (or null if none). Auto-bootstraps for shop owners."""
+    staff = await get_my_staff_owner_fallback(current_user, db)
     if staff is None:
         return None
     staff = await _load_user(staff, db)

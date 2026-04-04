@@ -13,7 +13,7 @@ from app.models.staff import Staff
 from app.models.work_schedule import WorkSchedule
 from app.models.blocked_slot import BlockedSlot
 from app.schemas.blocked_slot import BlockSlotCreate, UnblockSlotRequest, BlockedSlotOut
-from app.services.staff_utils import get_my_staff, get_staff_for_shop
+from app.services.staff_utils import get_my_staff_owner_fallback, get_staff_for_shop
 
 router = APIRouter(prefix="/slots", tags=["slots"])
 
@@ -34,7 +34,9 @@ async def get_blocked_slots(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    staff = await get_my_staff(current_user, db)
+    staff = await get_my_staff_owner_fallback(current_user, db)
+    if staff is None:
+        raise HTTPException(status_code=404, detail="No staff record found")
 
     query = (
         select(BlockedSlot)
@@ -55,7 +57,9 @@ async def block_slots(
     db: AsyncSession = Depends(get_db),
 ):
     """Block one or more time slots on a given date for the current staff member."""
-    staff = await get_my_staff(current_user, db)
+    staff = await get_my_staff_owner_fallback(current_user, db)
+    if staff is None:
+        raise HTTPException(status_code=404, detail="No staff record found")
 
     created: List[BlockedSlot] = []
     for time_slot in data.time_slots:
@@ -99,7 +103,9 @@ async def block_date_range(
     if (data.end_date - data.start_date).days > 60:
         raise HTTPException(status_code=400, detail="Range cannot exceed 60 days")
 
-    staff = await get_my_staff(current_user, db)
+    staff = await get_my_staff_owner_fallback(current_user, db)
+    if staff is None:
+        raise HTTPException(status_code=404, detail="No staff record found")
 
     # Load the shop for slot_duration
     shop_result = await db.execute(select(Shop).where(Shop.id == staff.shop_id))
@@ -159,7 +165,9 @@ async def unblock_date_range(
     if data.end_date < data.start_date:
         raise HTTPException(status_code=400, detail="end_date must be >= start_date")
 
-    staff = await get_my_staff(current_user, db)
+    staff = await get_my_staff_owner_fallback(current_user, db)
+    if staff is None:
+        raise HTTPException(status_code=404, detail="No staff record found")
 
     current = data.start_date
     while current <= data.end_date:
@@ -181,7 +189,9 @@ async def get_blocked_dates(
     db: AsyncSession = Depends(get_db),
 ):
     """Returns each date that has at least one blocked slot for the current staff member."""
-    staff = await get_my_staff(current_user, db)
+    staff = await get_my_staff_owner_fallback(current_user, db)
+    if staff is None:
+        raise HTTPException(status_code=404, detail="No staff record found")
 
     result = await db.execute(
         select(BlockedSlot.block_date, sql_func.count(BlockedSlot.id).label("count"))
@@ -209,7 +219,9 @@ async def unblock_slots(
     db: AsyncSession = Depends(get_db),
 ):
     """Unblock specific time slots on a given date."""
-    staff = await get_my_staff(current_user, db)
+    staff = await get_my_staff_owner_fallback(current_user, db)
+    if staff is None:
+        raise HTTPException(status_code=404, detail="No staff record found")
 
     await db.execute(
         delete(BlockedSlot).where(

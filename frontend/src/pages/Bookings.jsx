@@ -265,7 +265,7 @@ export default function Bookings() {
   const [filterStaffId, setFilterStaffId] = useState(null); // owner: filter by staff
 
   useEffect(() => {
-    if (!staffRecord) { setLoading(false); return; }
+    if (!staffRecord && !shop) { setLoading(false); return; }
     setLoading(true);
     setLoadError(false);
     const params = filterStaffId ? { staff_id: filterStaffId } : {};
@@ -273,7 +273,7 @@ export default function Bookings() {
       .then(setAllBookings)
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, [staffRecord, filterStaffId]);
+  }, [staffRecord, shop, filterStaffId]);
 
   const handleStatusChange = (updated) =>
     setAllBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
@@ -300,7 +300,7 @@ export default function Bookings() {
     }, {});
   }
 
-  if (!staffRecord) {
+  if (!staffRecord && !shop) {
     return (
       <div className="empty-state">
         <Store size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />

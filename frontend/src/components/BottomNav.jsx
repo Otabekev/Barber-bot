@@ -23,13 +23,14 @@ export default function BottomNav() {
   const shopStaff = useStore((s) => s.shopStaff);
   const lang = user?.language || "uz";
 
-  // isOwner: user owns the shop
-  const isOwner = shop && staffRecord && shop.owner_id === staffRecord.user_id;
-  // hasTeam: shop has >1 active approved staff
-  const hasTeam = shopStaff.filter((s) => s.is_active && s.is_approved).length > 1;
-
-  // Staff member (not owner): show staffRecord-based nav
-  const isBarber = !!staffRecord;
+  // isBarber: show barber nav if staffRecord exists OR if user owns a shop (fallback for pre-migration users)
+  const isBarber = !!staffRecord || !!shop;
+  // isOwner: staffRecord-based (preferred), or fall back to shop.owner_id match
+  const isOwner = shop && (
+    staffRecord ? shop.owner_id === staffRecord.user_id : shop.owner_id === user?.id
+  );
+  // hasTeam: only meaningful when staffRecord exists and shop has >1 active approved member
+  const hasTeam = !!staffRecord && shopStaff.filter((s) => s.is_active && s.is_approved).length > 1;
 
   const BARBER_ITEMS = [
     { to: "/",            label: t("nav_home", lang),      icon: <Home size={ICON_SIZE} color={ICON_COLOR} /> },
@@ -66,16 +67,11 @@ export default function BottomNav() {
     if (isOwner) {
       // Insert Shop item after Home
       items.splice(1, 0, ...OWNER_EXTRA_ITEMS);
-      if (hasTeam) {
+      // Only show Team nav when we have a confirmed staffRecord and >1 staff
+      if (staffRecord && hasTeam) {
         items.push(TEAM_ITEM);
       }
     }
-  } else if (shop) {
-    // Has shop but no staff record yet (shouldn't happen after migration, but fallback)
-    items = [
-      { to: "/",            label: t("nav_home", lang),      icon: <Home size={ICON_SIZE} color={ICON_COLOR} /> },
-      { to: "/shop",        label: t("nav_shop", lang),      icon: <Store size={ICON_SIZE} color={ICON_COLOR} /> },
-    ];
   } else {
     items = CUSTOMER_ITEMS;
   }

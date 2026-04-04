@@ -10,7 +10,7 @@ from app.models.shop import Shop
 from app.models.staff import Staff
 from app.models.work_schedule import WorkSchedule
 from app.schemas.work_schedule import ScheduleUpdate, ScheduleOut
-from app.services.staff_utils import get_my_staff, require_owner, get_staff_for_shop
+from app.services.staff_utils import get_my_staff_owner_fallback, require_owner, get_staff_for_shop
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -29,7 +29,9 @@ async def get_my_schedule(
     db: AsyncSession = Depends(get_db),
 ):
     """Return the current staff member's own schedule."""
-    staff = await get_my_staff(current_user, db)
+    staff = await get_my_staff_owner_fallback(current_user, db)
+    if staff is None:
+        raise HTTPException(status_code=404, detail="No staff record found. Create your shop first.")
     result = await db.execute(
         select(WorkSchedule)
         .where(WorkSchedule.staff_id == staff.id)
@@ -45,7 +47,9 @@ async def update_schedule(
     db: AsyncSession = Depends(get_db),
 ):
     """Replace the full week schedule for the current staff member."""
-    staff = await get_my_staff(current_user, db)
+    staff = await get_my_staff_owner_fallback(current_user, db)
+    if staff is None:
+        raise HTTPException(status_code=404, detail="No staff record found. Create your shop first.")
 
     days = [item.day_of_week for item in data.schedules]
     if len(days) != len(set(days)):

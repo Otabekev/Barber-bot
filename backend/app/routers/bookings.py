@@ -28,7 +28,7 @@ from app.services.notifications import (
 )
 from app.config import settings
 from app.services.slot_utils import get_service_duration, times_overlap
-from app.services.staff_utils import get_my_staff_optional
+from app.services.staff_utils import get_my_staff_optional, get_my_staff_owner_fallback
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -50,7 +50,7 @@ async def get_shop_bookings(
     db: AsyncSession = Depends(get_db),
 ):
     """Staff sees own bookings. Owner sees all (optionally filtered by staff_id)."""
-    my_staff = await get_my_staff_optional(current_user, db)
+    my_staff = await get_my_staff_owner_fallback(current_user, db)
     if my_staff is None:
         raise HTTPException(status_code=404, detail="No active staff record found")
 
@@ -171,7 +171,7 @@ async def update_booking_status(
     if body.status not in VALID_STATUSES:
         raise HTTPException(status_code=400, detail=f"Invalid status. Use one of {VALID_STATUSES}")
 
-    my_staff = await get_my_staff_optional(current_user, db)
+    my_staff = await get_my_staff_owner_fallback(current_user, db)
     if my_staff is None:
         raise HTTPException(status_code=404, detail="No active staff record found")
 
@@ -235,7 +235,7 @@ async def send_message_to_customer(
     db: AsyncSession = Depends(get_db),
 ):
     """Barber sends a free-form message to the customer via Telegram."""
-    my_staff = await get_my_staff_optional(current_user, db)
+    my_staff = await get_my_staff_owner_fallback(current_user, db)
     if my_staff is None:
         raise HTTPException(status_code=404, detail="No active staff record found")
 
