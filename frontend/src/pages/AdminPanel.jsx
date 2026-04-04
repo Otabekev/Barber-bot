@@ -5,11 +5,14 @@ import {
   adminApproveShop,
   adminRejectShop,
   adminGetUsers,
+  adminGetStaff,
+  adminApproveStaff,
+  adminRejectStaff,
 } from "../api/client";
 import { toast } from "../components/Layout";
 import { Check, Clock, Users, Store, ClipboardList, CheckCircle, X, ShieldCheck } from "lucide-react";
 
-const TABS = ["Shops", "Users", "Stats"];
+const TABS = ["Shops", "Staff", "Users", "Stats"];
 
 function StatusBadge({ approved }) {
   return (
@@ -33,14 +36,15 @@ function StatusBadge({ approved }) {
 export default function AdminPanel() {
   const [tab, setTab] = useState("Shops");
   const [shops, setShops] = useState([]);
+  const [staffList, setStaffList] = useState([]);
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
 
   useEffect(() => {
-    Promise.all([adminGetShops(), adminGetUsers(), adminGetStats()])
-      .then(([s, u, st]) => { setShops(s); setUsers(u); setStats(st); })
+    Promise.all([adminGetShops(), adminGetStaff(), adminGetUsers(), adminGetStats()])
+      .then(([s, sf, u, st]) => { setShops(s); setStaffList(sf); setUsers(u); setStats(st); })
       .catch(() => toast("Failed to load admin data"))
       .finally(() => setLoading(false));
   }, []);
@@ -70,7 +74,29 @@ export default function AdminPanel() {
 
   if (loading) return <div className="loader" style={{ height: "60vh" }}>Loading…</div>;
 
-  const pendingCount = shops.filter((s) => !s.is_approved).length;
+  const pendingShops = shops.filter((s) => !s.is_approved).length;
+  const pendingStaff = staffList.filter((s) => !s.is_approved && !s.is_rejected).length;
+  const pendingCount = pendingShops + pendingStaff;
+
+  async function approveStaff(id) {
+    setActing(id + "_sapprove");
+    try {
+      const updated = await adminApproveStaff(id);
+      setStaffList((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      toast("Staff approved ✓");
+    } catch { toast("Failed to approve"); }
+    finally { setActing(null); }
+  }
+
+  async function rejectStaff(id) {
+    setActing(id + "_sreject");
+    try {
+      const updated = await adminRejectStaff(id);
+      setStaffList((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      toast("Staff rejected");
+    } catch { toast("Failed"); }
+    finally { setActing(null); }
+  }
 
   return (
     <div className="page">
@@ -93,17 +119,20 @@ export default function AdminPanel() {
 
       {/* Tab bar */}
       <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "var(--card)", borderRadius: 12, padding: 4 }}>
-        {TABS.map((t) => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            flex: 1, padding: "9px 0", border: "none", borderRadius: 8, cursor: "pointer",
-            fontWeight: 600, fontSize: 13,
-            background: tab === t ? "var(--accent)" : "transparent",
-            color: tab === t ? "#fff" : "var(--hint)",
-            transition: "all 0.15s",
-          }}>
-            {t}{t === "Shops" && pendingCount > 0 ? ` (${pendingCount})` : ""}
-          </button>
-        ))}
+        {TABS.map((tb) => {
+          const badge = tb === "Shops" ? pendingShops : tb === "Staff" ? pendingStaff : 0;
+          return (
+            <button key={tb} onClick={() => setTab(tb)} style={{
+              flex: 1, padding: "9px 0", border: "none", borderRadius: 8, cursor: "pointer",
+              fontWeight: 600, fontSize: 13,
+              background: tab === tb ? "var(--accent)" : "transparent",
+              color: tab === tb ? "#fff" : "var(--hint)",
+              transition: "all 0.15s",
+            }}>
+              {tb}{badge > 0 ? ` (${badge})` : ""}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Stats ── */}
@@ -188,6 +217,62 @@ export default function AdminPanel() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── Staff ── */}
+      {tab === "Staff" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {staffList.length === 0 && (
+            <div style={{ textAlign: "center", padding: "48px 0", color: "var(--hint)" }}>
+              <Users size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
+              <p>No staff requests yet</p>
+            </div>
+          )}
+          {staffList.map((s) => {
+            const isPending = !s.is_approved && !s.is_rejected;
+            const shopName = shops.find((sh) => sh.id === s.shop_id)?.name ?? `Shop #${s.shop_id}`;
+            return (
+              <div key={s.id} className="card" style={{ padding: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
+                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2 }}>
+                      {s.display_name || `User #${s.user_id}`}
+                    </div>
+                    <div style={{ fontSize: 13, color: "var(--hint)" }}>Shop: {shopName}</div>
+                  </div>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap",
+                    background: s.is_approved ? "#10b98120" : s.is_rejected ? "#ef444420" : "#f59e0b20",
+                    color: s.is_approved ? "#10b981" : s.is_rejected ? "#ef4444" : "#f59e0b",
+                  }}>
+                    {s.is_approved ? "Approved" : s.is_rejected ? "Rejected" : "Pending"}
+                  </span>
+                </div>
+
+                {isPending && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                    <button
+                      className="btn btn-primary"
+                      style={{ flex: 1, padding: "8px 0", fontSize: 13 }}
+                      disabled={acting === s.id + "_sapprove"}
+                      onClick={() => approveStaff(s.id)}
+                    >
+                      {acting === s.id + "_sapprove" ? "…" : <><CheckCircle size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }} />Approve</>}
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ flex: 1, padding: "8px 0", fontSize: 13, color: "#ef4444" }}
+                      disabled={acting === s.id + "_sreject"}
+                      onClick={() => rejectStaff(s.id)}
+                    >
+                      {acting === s.id + "_sreject" ? "…" : <><X size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }} />Reject</>}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
