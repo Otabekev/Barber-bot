@@ -69,53 +69,57 @@ async def handle_restart(message: Message):
     )
 
 
-@router.message(CommandStart(deep_link=True, magic=F.args.startswith("join_")))
-async def cmd_start_invite(message: Message, command: CommandObject, backend: BackendClient, mini_app_url: str):
-    """Deep link: t.me/BOT?start=join_TOKEN — show invite info and a button to open JoinShop."""
-    token = command.args[len("join_"):]
-    lang = get_lang(message.from_user.id)
-
-    invite_info = await backend.get_invite_info(token)
-
-    await message.answer(
-        t("restart_button", "uz"),
-        reply_markup=persistent_keyboard(),
-    )
-
-    if invite_info is None:
-        await message.answer(t("invite_not_found_bot", lang))
-        return
-
-    if invite_info.get("is_expired"):
-        await message.answer(t("invite_expired_bot", lang))
-        return
-
-    if invite_info.get("is_used"):
-        await message.answer(t("invite_used_bot", lang))
-        return
-
-    shop_name = invite_info.get("shop_name", "")
-    join_url = f"{mini_app_url}/?join={token}"
-
-    await message.answer(
-        t("invite_bot_msg", lang, shop=shop_name),
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text=t("invite_open_btn", lang),
-                web_app=WebAppInfo(url=join_url),
-            )]
-        ]),
-        parse_mode="HTML",
-    )
-
-
 @router.message(CommandStart())
-async def cmd_start(message: Message):
-    # Attach the persistent reply keyboard first so it stays visible
+async def cmd_start(message: Message, command: CommandObject, backend: BackendClient, mini_app_url: str):
+    """Handle /start — with or without a deep-link payload."""
+    # Always re-attach the persistent keyboard first
     await message.answer(
         t("restart_button", "uz"),
         reply_markup=persistent_keyboard(),
     )
+
+    args = command.args or ""
+
+    # ── Invite deep link: /start join_<token> ────────────────────────────
+    if args.startswith("join_"):
+        token = args[len("join_"):]
+        lang = get_lang(message.from_user.id)
+
+        try:
+            invite_info = await backend.get_invite_info(token)
+        except Exception:
+            invite_info = None
+
+        if invite_info is None:
+            await message.answer(t("invite_not_found_bot", lang))
+            return
+
+        if invite_info.get("is_expired"):
+            await message.answer(t("invite_expired_bot", lang))
+            return
+
+        if invite_info.get("is_used"):
+            await message.answer(t("invite_used_bot", lang))
+            return
+
+        shop_name = invite_info.get("shop_name", "")
+        # Pass token as both query param AND as tgWebApp startapp param so the
+        # mini app can read it reliably regardless of how Telegram opens the URL.
+        join_url = f"{mini_app_url.rstrip('/')}/?join={token}"
+
+        await message.answer(
+            t("invite_bot_msg", lang, shop=shop_name),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text=t("invite_open_btn", lang),
+                    web_app=WebAppInfo(url=join_url),
+                )]
+            ]),
+            parse_mode="HTML",
+        )
+        return
+
+    # ── Normal /start ─────────────────────────────────────────────────────
     await message.answer(
         t("choose_language", "uz"),
         reply_markup=_language_keyboard(),

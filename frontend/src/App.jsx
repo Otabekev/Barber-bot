@@ -28,7 +28,12 @@ function AppRoutes() {
   const [searchParams] = useSearchParams();
   const shopId = searchParams.get("shop_id");
   const reviewBookingId = searchParams.get("booking_id");
-  const joinToken = searchParams.get("join");
+  // Read join token from URL query param OR from Telegram's start_param
+  // (Telegram passes the deep link payload via initDataUnsafe.start_param when
+  //  the mini app is launched via t.me/BOT?start=join_TOKEN)
+  const tgStartParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || "";
+  const joinToken = searchParams.get("join") ||
+    (tgStartParam.startsWith("join_") ? tgStartParam.slice(5) : null);
 
   if (shopId) {
     return (
