@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Users, CheckCircle, XCircle, Clock } from "lucide-react";
 import useStore from "../store/useStore";
-import { getInviteInfo, acceptInvite } from "../api/client";
+import { getInviteInfo, acceptInvite, getMyStaffRecord } from "../api/client";
 import { t } from "../i18n";
 
 const MUTED = "var(--hint)";
 
 export default function JoinShop() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const token = searchParams.get("join");
-  const { user } = useStore();
+  const { user, setStaffRecord } = useStore();
   const lang = user?.language || "uz";
 
   const [info, setInfo] = useState(null);
@@ -36,6 +37,9 @@ export default function JoinShop() {
     try {
       await acceptInvite(token);
       setJoined(true);
+      const staffRecord = await getMyStaffRecord();
+      setStaffRecord(staffRecord);
+      setTimeout(() => navigate("/team"), 500);
     } catch (e) {
       setError(e.response?.data?.detail || t("error_generic", lang));
     } finally {
