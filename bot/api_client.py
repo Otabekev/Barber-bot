@@ -33,6 +33,17 @@ class BackendClient:
                 return resp.json()
             return []
 
+    async def get_shop_detail(self, shop_id: int) -> Optional[dict]:
+        """Fetch a single shop's full detail (card + staff list + rating)."""
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                f"{self._base}/api/bot/shop/{shop_id}",
+                headers=self._headers,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+        return None
+
     async def get_barber_today(self, telegram_id: int) -> Optional[dict]:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(

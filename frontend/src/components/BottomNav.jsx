@@ -23,8 +23,8 @@ export default function BottomNav() {
   const shopStaff = useStore((s) => s.shopStaff);
   const lang = user?.language || "uz";
 
-  // isBarber: show barber nav if staffRecord exists OR if user owns a shop (fallback for pre-migration users)
-  const isBarber = !!staffRecord || !!shop;
+  // isBarber: show barber nav if approved staff OR if user owns a shop
+  const isBarber = (staffRecord?.is_approved) || !!shop;
   // isOwner: staffRecord-based (preferred), or fall back to shop.owner_id match
   const isOwner = shop && (
     staffRecord ? shop.owner_id === staffRecord.user_id : shop.owner_id === user?.id

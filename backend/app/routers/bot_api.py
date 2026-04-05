@@ -121,6 +121,46 @@ async def get_shops_by_region(
     return out
 
 
+@router.get("/shop/{shop_id}")
+async def get_single_shop(
+    shop_id: int,
+    _: None = Depends(_verify_bot_secret),
+    db: AsyncSession = Depends(get_db),
+):
+    """Bot calls this to get a single shop's detail with staff list and rating."""
+    result = await db.execute(
+        select(Shop).where(Shop.id == shop_id, Shop.is_approved == True, Shop.is_active == True)
+    )
+    shop = result.scalar_one_or_none()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+
+    rating_result = await db.execute(
+        select(
+            func.avg(Review.rating).label("avg"),
+            func.count(Review.id).label("cnt"),
+        ).where(Review.shop_id == shop_id)
+    )
+    row = rating_result.one()
+    avg = round(float(row.avg), 1) if row.avg else None
+    cnt = row.cnt or 0
+
+    staff_result = await db.execute(
+        select(Staff).where(
+            Staff.shop_id == shop_id,
+            Staff.is_active == True,
+            Staff.is_approved == True,
+        ).order_by(Staff.created_at)
+    )
+    staff_list = [{"id": s.id, "display_name": s.display_name, "has_photo": s.has_photo} for s in staff_result.scalars().all()]
+
+    d = ShopOut.model_validate(shop).model_dump()
+    d["avg_rating"] = avg
+    d["review_count"] = cnt
+    d["staff"] = staff_list
+    return d
+
+
 @router.get("/barber-today")
 async def barber_today_schedule(
     telegram_id: int,

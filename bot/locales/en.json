@@ -45,5 +45,11 @@
   "invite_not_found_bot": "❌ Invite not found or expired.",
   "invite_expired_bot": "❌ This invite link has expired.",
   "invite_used_bot": "❌ This invite link has already been used.",
-  "pick_barber_bot": "Which barber would you like to book?"
+  "pick_barber_bot": "Which barber would you like to book?",
+  "shop_list_header": "💈 Barbershops in <b>{location}</b>:\n\nTap one to see details:",
+  "shop_detail_staff_header": "✂️ Barbers:",
+  "shop_detail_no_staff": "No barbers listed yet.",
+  "staff_card": "💈 <b>{name}</b>",
+  "back_to_shops": "⬅️ Back to shops",
+  "back_to_shop": "⬅️ Back to shop"
 }

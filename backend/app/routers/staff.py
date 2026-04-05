@@ -67,7 +67,14 @@ async def get_my_staff_record(
     db: AsyncSession = Depends(get_db),
 ):
     """Return the current user's staff record (or null if none). Auto-bootstraps for shop owners."""
-    staff = await get_my_staff_owner_fallback(current_user, db)
+    # First try: any staff record for this user (including pending approval)
+    any_result = await db.execute(
+        select(Staff).where(Staff.user_id == current_user.id, Staff.is_active == True)
+    )
+    staff = any_result.scalar_one_or_none()
+    # If no record at all, try the owner fallback (auto-creates for shop owners)
+    if staff is None:
+        staff = await get_my_staff_owner_fallback(current_user, db)
     if staff is None:
         return None
     staff = await _load_user(staff, db)

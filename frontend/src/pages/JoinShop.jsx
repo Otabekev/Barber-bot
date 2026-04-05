@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Users, CheckCircle, XCircle, Clock } from "lucide-react";
 import useStore from "../store/useStore";
-import { getInviteInfo, acceptInvite } from "../api/client";
+import { getInviteInfo, acceptInvite, getMyStaffRecord } from "../api/client";
 import { t } from "../i18n";
 
 const MUTED = "var(--hint)";
@@ -10,8 +10,9 @@ const MUTED = "var(--hint)";
 export default function JoinShop() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("join");
-  const { user } = useStore();
+  const { user, setStaffRecord } = useStore();
   const lang = user?.language || "uz";
+  const navigate = useNavigate();
 
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,11 @@ export default function JoinShop() {
     try {
       await acceptInvite(token);
       setJoined(true);
+      // Refresh staffRecord in store so the app knows this user is now staff
+      const staffRec = await getMyStaffRecord().catch(() => null);
+      if (staffRec) setStaffRecord(staffRec);
+      // Give user 1.5s to read the success message, then go to dashboard
+      setTimeout(() => navigate("/", { replace: true }), 1500);
     } catch (e) {
       setError(e.response?.data?.detail || t("error_generic", lang));
     } finally {

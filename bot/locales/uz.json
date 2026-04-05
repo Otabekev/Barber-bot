@@ -45,5 +45,11 @@
   "invite_not_found_bot": "❌ Taklif topilmadi yoki muddati o'tgan.",
   "invite_expired_bot": "❌ Bu taklif havolasining muddati o'tgan.",
   "invite_used_bot": "❌ Bu havoladan allaqachon foydalanilgan.",
-  "pick_barber_bot": "Qaysi barberga yozilmoqchisiz?"
+  "pick_barber_bot": "Qaysi barberga yozilmoqchisiz?",
+  "shop_list_header": "💈 <b>{location}</b> dagi sartaroshxonalar:\n\nBirini tanlang:",
+  "shop_detail_staff_header": "✂️ Barberlar:",
+  "shop_detail_no_staff": "Hozircha barber yo'q.",
+  "staff_card": "💈 <b>{name}</b>",
+  "back_to_shops": "⬅️ Sartaroshxonalarga",
+  "back_to_shop": "⬅️ Sartaroshxonaga"
 }

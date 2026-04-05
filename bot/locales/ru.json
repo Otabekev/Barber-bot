@@ -45,5 +45,11 @@
   "invite_not_found_bot": "❌ Приглашение не найдено или истекло.",
   "invite_expired_bot": "❌ Срок действия этой ссылки-приглашения истёк.",
   "invite_used_bot": "❌ По этой ссылке уже зарегистрировались.",
-  "pick_barber_bot": "К какому барберу вы хотите записаться?"
+  "pick_barber_bot": "К какому барберу вы хотите записаться?",
+  "shop_list_header": "💈 Барбершопы в <b>{location}</b>:\n\nВыберите один:",
+  "shop_detail_staff_header": "✂️ Барберы:",
+  "shop_detail_no_staff": "Пока нет барберов.",
+  "staff_card": "💈 <b>{name}</b>",
+  "back_to_shops": "⬅️ К списку шопов",
+  "back_to_shop": "⬅️ К барбершопу"
 }
