@@ -65,9 +65,9 @@ export default function AdminPanel() {
   async function reject(id) {
     setActing(id + "_reject");
     try {
-      const updated = await adminRejectShop(id);
-      setShops((prev) => prev.map((s) => (s.id === id ? updated : s)));
-      toast("Approval revoked");
+      await adminRejectShop(id);
+      setShops((prev) => prev.filter((s) => s.id !== id));
+      toast("Shop rejected");
     } catch { toast("Failed"); }
     finally { setActing(null); }
   }

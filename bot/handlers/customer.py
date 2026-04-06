@@ -1,6 +1,7 @@
 from datetime import date as _date
 
 from aiogram import Router, F
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardMarkup,
@@ -15,6 +16,18 @@ from bot.handlers.start import get_lang
 from bot.constants import DISTRICTS
 
 router = Router()
+
+
+async def _safe_edit(callback: CallbackQuery, text: str, **kwargs):
+    """Edit message text; for photo messages fall back to edit_caption, then answer."""
+    try:
+        await callback.message.edit_text(text, **kwargs)
+    except TelegramBadRequest:
+        try:
+            await callback.message.edit_caption(caption=text, **kwargs)
+        except TelegramBadRequest:
+            await callback.message.answer(text, **kwargs)
+
 
 REGIONS = [
     "Toshkent shahri",
@@ -112,7 +125,8 @@ async def handle_district_pick(callback: CallbackQuery, backend: BackendClient):
         )])
     rows.append([InlineKeyboardButton(text=t("back", lang), callback_data=back_cb)])
 
-    await callback.message.edit_text(
+    await _safe_edit(
+        callback,
         t("shop_list_header", lang, location=location_label),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
         parse_mode="HTML",
@@ -263,7 +277,8 @@ async def handle_staff_view(callback: CallbackQuery, backend: BackendClient, min
         except Exception:
             pass
 
-    await callback.message.edit_text(
+    await _safe_edit(
+        callback,
         card_text,
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),

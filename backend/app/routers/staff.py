@@ -99,7 +99,7 @@ async def get_shop_staff(
     result = await db.execute(
         select(Staff)
         .options(selectinload(Staff.user))
-        .where(Staff.shop_id == shop.id)
+        .where(Staff.shop_id == shop.id, Staff.is_active == True)
         .order_by(Staff.created_at)
     )
     staff_list = result.scalars().all()

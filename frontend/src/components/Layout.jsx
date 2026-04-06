@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import useStore from "../store/useStore";
 import { updateLanguage } from "../api/client";
@@ -69,6 +70,25 @@ function LanguageSwitcher() {
 export default function Layout({ children }) {
   const [toasts, setToasts] = useState([]);
   const counter = useRef(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Show Telegram native BackButton on all non-root pages
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg?.BackButton) return;
+    if (location.pathname !== "/") {
+      tg.BackButton.show();
+      const handler = () => navigate(-1);
+      tg.BackButton.onClick(handler);
+      return () => {
+        tg.BackButton.offClick(handler);
+        tg.BackButton.hide();
+      };
+    } else {
+      tg.BackButton.hide();
+    }
+  }, [location.pathname, navigate]);
 
   _addToast = (msg) => {
     const id = ++counter.current;
