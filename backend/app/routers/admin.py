@@ -47,6 +47,14 @@ async def admin_approve_shop(
     shop.is_rejected = False
     await db.commit()
     await db.refresh(shop)
+    try:
+        owner_result = await db.execute(select(User).where(User.id == shop.owner_id))
+        owner = owner_result.scalar_one_or_none()
+        if owner:
+            from app.services.notifications import notify_owner_shop_approved
+            await notify_owner_shop_approved(owner.telegram_id, shop.name, owner.language)
+    except Exception:
+        pass
     return shop
 
 
@@ -64,6 +72,14 @@ async def admin_reject_shop(
     shop.is_rejected = True
     await db.commit()
     await db.refresh(shop)
+    try:
+        owner_result = await db.execute(select(User).where(User.id == shop.owner_id))
+        owner = owner_result.scalar_one_or_none()
+        if owner:
+            from app.services.notifications import notify_owner_shop_rejected
+            await notify_owner_shop_rejected(owner.telegram_id, shop.name, owner.language)
+    except Exception:
+        pass
     return shop
 
 
@@ -124,7 +140,7 @@ async def admin_approve_staff(
         if staff_user:
             await notify_staff_approved(staff_user.telegram_id, shop.name if shop else "", staff_user.language)
         if owner_result and shop and staff_user:
-            owner = (await owner_result).scalar_one_or_none()
+            owner = owner_result.scalar_one_or_none()
             if owner and owner.id != staff.user_id:
                 await notify_owner_staff_joined(owner.telegram_id, staff_user.full_name, owner.language)
     except Exception:

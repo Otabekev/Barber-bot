@@ -58,13 +58,14 @@ def persistent_keyboard() -> ReplyKeyboardMarkup:
 
 @router.message(F.text.in_(RESTART_BUTTON_TEXTS))
 async def handle_restart(message: Message):
+    lang = get_lang(message.from_user.id)
     # Re-attach the persistent keyboard in case it was dismissed, then show language pick
     await message.answer(
-        t("restart_button", "uz"),
+        t("restart_button", lang),
         reply_markup=persistent_keyboard(),
     )
     await message.answer(
-        t("choose_language", "uz"),
+        t("choose_language", lang),
         reply_markup=_language_keyboard(),
     )
 
@@ -72,9 +73,10 @@ async def handle_restart(message: Message):
 @router.message(CommandStart())
 async def cmd_start(message: Message, command: CommandObject, backend: BackendClient, mini_app_url: str):
     """Handle /start — with or without a deep-link payload."""
+    lang = get_lang(message.from_user.id)
     # Always re-attach the persistent keyboard first
     await message.answer(
-        t("restart_button", "uz"),
+        t("restart_button", lang),
         reply_markup=persistent_keyboard(),
     )
 

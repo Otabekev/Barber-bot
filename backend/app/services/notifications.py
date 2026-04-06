@@ -272,6 +272,32 @@ async def notify_owner_staff_joined(
     await _send(owner_telegram_id, msgs.get(language, msgs["uz"]))
 
 
+async def notify_owner_shop_approved(
+    owner_telegram_id: int,
+    shop_name: str,
+    language: str = "uz",
+) -> None:
+    msgs = {
+        "uz": f"✅ <b>{shop_name}</b> tasdiqlandi! Sartaroshxonangiz endi mijozlarga ko'rinmoqda.",
+        "ru": f"✅ <b>{shop_name}</b> одобрен! Ваш барбершоп теперь виден клиентам.",
+        "en": f"✅ <b>{shop_name}</b> approved! Your barbershop is now visible to customers.",
+    }
+    await _send(owner_telegram_id, msgs.get(language, msgs["uz"]))
+
+
+async def notify_owner_shop_rejected(
+    owner_telegram_id: int,
+    shop_name: str,
+    language: str = "uz",
+) -> None:
+    msgs = {
+        "uz": f"❌ <b>{shop_name}</b> rad etildi. Muammo bo'lsa admin bilan bog'laning.",
+        "ru": f"❌ <b>{shop_name}</b> отклонён. По вопросам — свяжитесь с администратором.",
+        "en": f"❌ <b>{shop_name}</b> was rejected. Contact support if you have questions.",
+    }
+    await _send(owner_telegram_id, msgs.get(language, msgs["uz"]))
+
+
 async def notify_customer_status_change(
     customer_telegram_id: int,
     new_status: str,

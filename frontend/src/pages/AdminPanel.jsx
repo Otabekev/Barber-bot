@@ -41,6 +41,7 @@ export default function AdminPanel() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
+  const [confirmReject, setConfirmReject] = useState(null); // { type: "shop"|"staff", id, name }
 
   useEffect(() => {
     Promise.all([adminGetShops(), adminGetStaff(), adminGetUsers(), adminGetStats()])
@@ -62,14 +63,8 @@ export default function AdminPanel() {
     finally { setActing(null); }
   }
 
-  async function reject(id) {
-    setActing(id + "_reject");
-    try {
-      await adminRejectShop(id);
-      setShops((prev) => prev.filter((s) => s.id !== id));
-      toast("Shop rejected");
-    } catch { toast("Failed"); }
-    finally { setActing(null); }
+  function reject(id, name) {
+    setConfirmReject({ type: "shop", id, name });
   }
 
   if (loading) return <div className="loader" style={{ height: "60vh" }}>Loading…</div>;
@@ -88,14 +83,31 @@ export default function AdminPanel() {
     finally { setActing(null); }
   }
 
-  async function rejectStaff(id) {
-    setActing(id + "_sreject");
-    try {
-      const updated = await adminRejectStaff(id);
-      setStaffList((prev) => prev.map((s) => (s.id === id ? updated : s)));
-      toast("Staff rejected");
-    } catch { toast("Failed"); }
-    finally { setActing(null); }
+  function rejectStaff(id, name) {
+    setConfirmReject({ type: "staff", id, name });
+  }
+
+  async function doReject() {
+    if (!confirmReject) return;
+    const { type, id } = confirmReject;
+    setConfirmReject(null);
+    if (type === "shop") {
+      setActing(id + "_reject");
+      try {
+        await adminRejectShop(id);
+        setShops((prev) => prev.filter((s) => s.id !== id));
+        toast("Shop rejected");
+      } catch { toast("Failed"); }
+      finally { setActing(null); }
+    } else {
+      setActing(id + "_sreject");
+      try {
+        const updated = await adminRejectStaff(id);
+        setStaffList((prev) => prev.map((s) => (s.id === id ? updated : s)));
+        toast("Staff rejected");
+      } catch { toast("Failed"); }
+      finally { setActing(null); }
+    }
   }
 
   return (
@@ -199,7 +211,7 @@ export default function AdminPanel() {
                       className="btn btn-secondary"
                       style={{ flex: 1, padding: "8px 0", fontSize: 13, color: "#ef4444" }}
                       disabled={acting === shop.id + "_reject"}
-                      onClick={() => reject(shop.id)}
+                      onClick={() => reject(shop.id, shop.name)}
                     >
                       {acting === shop.id + "_reject" ? "…" : <><X size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }} />Reject</>}
                     </button>
@@ -209,7 +221,7 @@ export default function AdminPanel() {
                     className="btn btn-secondary"
                     style={{ padding: "7px 16px", fontSize: 13, color: "#ef4444" }}
                     disabled={acting === shop.id + "_reject"}
-                    onClick={() => reject(shop.id)}
+                    onClick={() => reject(shop.id, shop.name)}
                   >
                     {acting === shop.id + "_reject" ? "…" : "Revoke approval"}
                   </button>
@@ -264,7 +276,7 @@ export default function AdminPanel() {
                       className="btn btn-secondary"
                       style={{ flex: 1, padding: "8px 0", fontSize: 13, color: "#ef4444" }}
                       disabled={acting === s.id + "_sreject"}
-                      onClick={() => rejectStaff(s.id)}
+                      onClick={() => rejectStaff(s.id, s.display_name)}
                     >
                       {acting === s.id + "_sreject" ? "…" : <><X size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }} />Reject</>}
                     </button>
@@ -273,6 +285,33 @@ export default function AdminPanel() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Confirm reject dialog ── */}
+      {confirmReject && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+          display: "flex", alignItems: "flex-end", zIndex: 1000,
+        }}>
+          <div style={{ background: "var(--bg)", width: "100%", borderRadius: "16px 16px 0 0", padding: 24 }}>
+            <h3 style={{ fontWeight: 700, marginBottom: 8 }}>Confirm Rejection</h3>
+            <p style={{ color: "var(--hint)", fontSize: 14, marginBottom: 20 }}>
+              Reject <b>{confirmReject.name}</b>? This cannot be undone from the panel.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setConfirmReject(null)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1, background: "#ef4444", borderColor: "#ef4444" }}
+                onClick={doReject}
+              >
+                Reject
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

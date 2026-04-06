@@ -16,6 +16,13 @@ class BookingCreate(BaseModel):
     customer_phone: str
     service_type: str = "haircut"
 
+    @field_validator("booking_date")
+    @classmethod
+    def date_not_in_past(cls, v: date) -> date:
+        if v < date.today():
+            raise ValueError("Cannot book a date in the past")
+        return v
+
     @field_validator("service_type")
     @classmethod
     def validate_service_type(cls, v: str) -> str:

@@ -105,18 +105,25 @@ async def get_shop_staff(
     staff_list = result.scalars().all()
 
     from app.models.review import Review
+    # Single aggregation query for all staff ratings — avoids N+1
+    staff_ids = [s.id for s in staff_list]
+    agg_result = await db.execute(
+        select(
+            Review.staff_id,
+            func.avg(Review.rating).label("avg"),
+            func.count(Review.id).label("cnt"),
+        )
+        .where(Review.staff_id.in_(staff_ids))
+        .group_by(Review.staff_id)
+    )
+    ratings = {row.staff_id: (row.avg, row.cnt) for row in agg_result}
+
     outputs = []
     for s in staff_list:
-        agg = await db.execute(
-            select(
-                func.avg(Review.rating).label("avg"),
-                func.count(Review.id).label("cnt"),
-            ).where(Review.staff_id == s.id)
-        )
-        row = agg.one()
+        avg, cnt = ratings.get(s.id, (None, 0))
         out = StaffOut.model_validate(s)
-        out.avg_rating = round(float(row.avg), 1) if row.avg else None
-        out.review_count = row.cnt or 0
+        out.avg_rating = round(float(avg), 1) if avg else None
+        out.review_count = cnt or 0
         out.is_owner = (s.user_id == shop.owner_id)
         outputs.append(out)
     return outputs
@@ -213,21 +220,29 @@ async def accept_invite(
         raise HTTPException(status_code=400, detail="Invite has expired")
 
     # Check if user already has a staff record for this shop
-    existing = await db.execute(
+    existing_result = await db.execute(
         select(Staff).where(Staff.shop_id == invite.shop_id, Staff.user_id == current_user.id)
     )
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="You are already a member of this shop")
+    existing_staff = existing_result.scalar_one_or_none()
 
-    staff = Staff(
-        shop_id=invite.shop_id,
-        user_id=current_user.id,
-        display_name=current_user.full_name,
-        is_active=True,
-        is_approved=False,  # awaits admin approval
-        is_rejected=False,
-    )
-    db.add(staff)
+    if existing_staff:
+        if existing_staff.is_active:
+            raise HTTPException(status_code=400, detail="You are already a member of this shop")
+        # Previously removed — reactivate the record
+        existing_staff.is_active = True
+        existing_staff.is_approved = False
+        existing_staff.is_rejected = False
+        staff = existing_staff
+    else:
+        staff = Staff(
+            shop_id=invite.shop_id,
+            user_id=current_user.id,
+            display_name=current_user.full_name,
+            is_active=True,
+            is_approved=False,  # awaits admin approval
+            is_rejected=False,
+        )
+        db.add(staff)
 
     invite.used_at = datetime.utcnow()
     invite.used_by = current_user.id
