@@ -28,8 +28,12 @@ async def admin_get_shops(
     _: User = Depends(_require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """All shops with their approval status."""
-    result = await db.execute(select(Shop).order_by(Shop.is_approved, Shop.id.desc()))
+    """All shops except rejected ones (pending + approved only)."""
+    result = await db.execute(
+        select(Shop)
+        .where(Shop.is_rejected == False)
+        .order_by(Shop.is_approved, Shop.id.desc())
+    )
     return result.scalars().all()
 
 

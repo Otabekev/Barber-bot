@@ -69,7 +69,7 @@ function StaffCard({ member, isOwner, onRemove, lang }) {
 }
 
 export default function Team() {
-  const { user, staffRecord } = useStore();
+  const { user, staffRecord, setShopStaff } = useStore();
   const lang = user?.language || "uz";
   const isOwner = staffRecord?.is_owner;
 
@@ -85,12 +85,14 @@ export default function Team() {
     try {
       const data = await getShopStaff();
       setStaff(data);
+      // Keep global store in sync so BottomNav hasTeam stays accurate
+      setShopStaff(data);
     } catch {
       // ignore
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setShopStaff]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -122,13 +124,14 @@ export default function Team() {
 
   async function confirmRemoveStaff() {
     if (!confirmRemove) return;
+    const { id } = confirmRemove;
+    setConfirmRemove(null);
     try {
-      await removeStaff(confirmRemove.id);
-      setStaff((prev) => prev.filter((s) => s.id !== confirmRemove.id));
+      await removeStaff(id);
+      // Reload from backend — authoritative source, ensures is_active filter applies
+      await load();
     } catch (e) {
       alert(e.response?.data?.detail || t("error_generic", lang));
-    } finally {
-      setConfirmRemove(null);
     }
   }
 

@@ -45,7 +45,12 @@ export default function AdminPanel() {
 
   useEffect(() => {
     Promise.all([adminGetShops(), adminGetStaff(), adminGetUsers(), adminGetStats()])
-      .then(([s, sf, u, st]) => { setShops(s); setStaffList(sf); setUsers(u); setStats(st); })
+      .then(([s, sf, u, st]) => {
+        setShops(s.filter((sh) => !sh.is_rejected));
+        setStaffList(sf);
+        setUsers(u);
+        setStats(st);
+      })
       .catch(() => toast("Failed to load admin data"))
       .finally(() => setLoading(false));
   }, []);

@@ -91,8 +91,13 @@ export default function Dashboard() {
               </span>
             )}
           </div>
+          {!staffRecord.is_approved && !staffRecord.is_rejected && (
+            <Link to="/profile" className="btn btn-primary" style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <User size={IC} /> {t("setup_profile", lang)}
+            </Link>
+          )}
           {staffRecord.is_approved && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
               <Link to="/bookings" className="btn btn-ghost" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 <CalendarCheck size={IC} /> {t("nav_bookings", lang)}
               </Link>

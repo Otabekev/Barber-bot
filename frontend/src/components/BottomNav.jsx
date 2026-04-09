@@ -23,8 +23,10 @@ export default function BottomNav() {
   const shopStaff = useStore((s) => s.shopStaff);
   const lang = user?.language || "uz";
 
-  // isBarber: show barber nav if approved staff OR if user owns a shop
+  // isBarber: full barber nav — approved staff OR shop owner
   const isBarber = (staffRecord?.is_approved) || !!shop;
+  // isPendingStaff: joined a shop but waiting for admin approval — show minimal nav
+  const isPendingStaff = !!staffRecord && !staffRecord.is_approved && !staffRecord.is_rejected && !shop;
   // isOwner: staffRecord-based (preferred), or fall back to shop.owner_id match
   const isOwner = shop && (
     staffRecord ? shop.owner_id === staffRecord.user_id : shop.owner_id === user?.id
@@ -72,6 +74,12 @@ export default function BottomNav() {
         items.push(TEAM_ITEM);
       }
     }
+  } else if (isPendingStaff) {
+    // Joined a shop but awaiting admin approval — show Home + Profile so they can fill in their info
+    items = [
+      { to: "/",        label: t("nav_home", lang),    icon: <Home size={ICON_SIZE} color={ICON_COLOR} /> },
+      { to: "/profile", label: t("nav_profile", lang), icon: <User size={ICON_SIZE} color={ICON_COLOR} /> },
+    ];
   } else {
     items = CUSTOMER_ITEMS;
   }
