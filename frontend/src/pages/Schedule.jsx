@@ -14,14 +14,15 @@ const DEFAULT_SCHEDULE = Array.from({ length: 7 }, (_, i) => ({
 }));
 
 export default function Schedule() {
-  const { user, shop } = useStore();
+  const { user, shop, staffRecord } = useStore();
   const lang = user?.language || "uz";
   const [rows, setRows] = useState(DEFAULT_SCHEDULE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!shop) { setLoading(false); return; }
+    // Need at least a shop (owner) or a staff record to load a schedule
+    if (!shop && !staffRecord) { setLoading(false); return; }
     getMySchedule()
       .then((data) => {
         if (data.length > 0) {
@@ -37,7 +38,7 @@ export default function Schedule() {
       })
       .catch(() => toast(t("load_error", lang)))
       .finally(() => setLoading(false));
-  }, [shop]);
+  }, [shop, staffRecord]);
 
   const updateRow = (idx, patch) =>
     setRows((r) => r.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
@@ -54,7 +55,7 @@ export default function Schedule() {
     }
   }
 
-  if (!shop) {
+  if (!shop && !staffRecord) {
     return (
       <div className="empty-state">
         <div style={{ fontSize: 36 }}>🏪</div>

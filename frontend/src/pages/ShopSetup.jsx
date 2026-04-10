@@ -3,10 +3,99 @@ import useStore from "../store/useStore";
 import {
   createShop, updateShop,
   uploadShopPhoto, deleteShopPhoto, getShopPhotoUrl,
+  getMyStaffShop,
 } from "../api/client";
 import { toast } from "../components/Layout";
 import { t } from "../i18n";
 import DISTRICTS from "../districts";
+
+// ── Read-only shop card for non-owner staff ────────────────────────────────────
+function StaffShopView({ lang }) {
+  const [shopData, setShopData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getMyStaffShop()
+      .then(setShopData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="loader">{t("loading", lang)}</div>;
+  if (!shopData) return (
+    <div className="empty-state">
+      <div style={{ fontSize: 36 }}>🏪</div>
+      <p style={{ color: "var(--hint)", fontSize: 14 }}>{t("loading", lang)}</p>
+    </div>
+  );
+
+  const Field = ({ label, value }) => value ? (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, color: "var(--hint)", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 15, fontWeight: 500 }}>{value}</div>
+    </div>
+  ) : null;
+
+  return (
+    <div>
+      <h1 className="section-title">{shopData.name}</h1>
+
+      {/* Approval status */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 14, color: "var(--hint)" }}>{t("status_label", lang)}</span>
+          <span className={`badge ${shopData.is_approved ? "badge-approved" : "badge-pending-approval"}`}>
+            {shopData.is_approved ? t("approved_check", lang) : t("awaiting_approval", lang)}
+          </span>
+        </div>
+      </div>
+
+      {/* Shop photo */}
+      {shopData.has_photo && (
+        <div className="card" style={{ marginBottom: 16, padding: 0, overflow: "hidden", borderRadius: 12 }}>
+          <img
+            src={getShopPhotoUrl(shopData.id)}
+            alt={shopData.name}
+            style={{ width: "100%", height: 180, objectFit: "cover", display: "block" }}
+          />
+        </div>
+      )}
+
+      {/* Shop details */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <p className="card-title">{t("shop_info_title", lang)}</p>
+        <Field label={t("shop_name_label", lang)} value={shopData.name} />
+        <Field label={t("region_label", lang)} value={[shopData.region, shopData.district].filter(Boolean).join(" · ")} />
+        <Field label={t("city_label", lang)} value={shopData.city} />
+        <Field label={t("address_label", lang)} value={shopData.address} />
+        <Field label={t("phone_label", lang)} value={shopData.phone} />
+      </div>
+
+      {/* Services */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <p className="card-title">{t("booking_settings_title", lang)}</p>
+        <Field label={t("slot_duration_label", lang)} value={`${shopData.slot_duration} min`} />
+        {shopData.beard_duration && (
+          <Field label={t("beard_duration_label", lang)} value={`${shopData.beard_duration} min`} />
+        )}
+      </div>
+
+      {/* Description */}
+      {shopData.description && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <p className="card-title">{t("description_label", lang)}</p>
+          <p style={{ fontSize: 14, color: "var(--text)", margin: 0, lineHeight: 1.6 }}>
+            {shopData.description}
+          </p>
+        </div>
+      )}
+
+      <p style={{ fontSize: 12, color: "var(--hint)", textAlign: "center", marginTop: 8 }}>
+        {t("shop_view_readonly_note", lang)}
+      </p>
+    </div>
+  );
+}
 
 const SLOT_OPTIONS = [15, 20, 30, 45, 60];
 
@@ -18,8 +107,13 @@ const EMPTY = {
 };
 
 export default function ShopSetup() {
-  const { user, shop, setShop } = useStore();
+  const { user, shop, staffRecord, setShop } = useStore();
   const lang = user?.language || "uz";
+
+  // Non-owner staff: show read-only shop view instead of the edit form
+  if (!shop && staffRecord) {
+    return <StaffShopView lang={lang} />;
+  }
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});

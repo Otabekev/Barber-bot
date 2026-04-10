@@ -246,5 +246,7 @@
   "error_generic": "Xatolik yuz berdi. Qayta urinib ko'ring.",
   "cancel": "Bekor qilish",
   "btn_danger": "O'chirish",
-  "all_staff": "Hammasi"
+  "all_staff": "Hammasi",
+
+  "shop_view_readonly_note": "Do'kon ma'lumotlarini faqat egasi o'zgartira oladi."
 }

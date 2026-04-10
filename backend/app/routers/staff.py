@@ -15,6 +15,7 @@ from app.models.shop import Shop
 from app.models.staff import Staff
 from app.models.staff_invite import StaffInvite
 from app.schemas.staff import StaffOut, StaffUpdate, InviteOut, InviteInfo, StaffUserInfo
+from app.schemas.shop import ShopOut
 from app.services.staff_utils import get_my_staff, get_my_staff_optional, get_my_staff_owner_fallback, require_owner, get_staff_for_shop
 
 router = APIRouter(prefix="/staff", tags=["staff"])
@@ -85,6 +86,22 @@ async def get_my_staff_record(
     shop = shop_result.scalar_one_or_none()
     out.is_owner = (shop is not None and shop.owner_id == current_user.id)
     return out
+
+
+@router.get("/my-shop", response_model=ShopOut)
+async def get_my_staff_shop(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the shop that the current user's staff record belongs to (read-only info for staff)."""
+    staff = await get_my_staff_owner_fallback(current_user, db)
+    if staff is None:
+        raise HTTPException(status_code=404, detail="No staff record found")
+    shop_result = await db.execute(select(Shop).where(Shop.id == staff.shop_id))
+    shop = shop_result.scalar_one_or_none()
+    if shop is None:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    return shop
 
 
 # ─── owner: team management ───────────────────────────────────────────────────

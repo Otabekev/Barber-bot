@@ -124,6 +124,8 @@ export const cancelMyBooking = (id) =>
 // ── Staff ─────────────────────────────────────────────────────────────────────
 export const getMyStaffRecord = () =>
   api.get("/staff/my").then((r) => r.data);
+export const getMyStaffShop = () =>
+  api.get("/staff/my-shop").then((r) => r.data);
 export const getShopStaff = () =>
   api.get("/staff/shop").then((r) => r.data);
 export const createInvite = () =>

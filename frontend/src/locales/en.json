@@ -246,5 +246,7 @@
   "error_generic": "Something went wrong. Please try again.",
   "cancel": "Cancel",
   "btn_danger": "Remove",
-  "all_staff": "All"
+  "all_staff": "All",
+
+  "shop_view_readonly_note": "Only the shop owner can edit these details."
 }

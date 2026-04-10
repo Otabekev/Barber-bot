@@ -73,6 +73,9 @@ export default function BottomNav() {
       if (staffRecord && hasTeam) {
         items.push(TEAM_ITEM);
       }
+    } else if (staffRecord) {
+      // Non-owner approved staff: insert read-only Shop view after Home
+      items.splice(1, 0, { to: "/shop", label: t("nav_shop", lang), icon: <Store size={ICON_SIZE} color={ICON_COLOR} /> });
     }
   } else if (isPendingStaff) {
     // Joined a shop but awaiting admin approval — show Home + Profile so they can fill in their info
