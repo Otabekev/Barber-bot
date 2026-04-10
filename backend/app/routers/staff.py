@@ -68,14 +68,28 @@ async def get_my_staff_record(
     db: AsyncSession = Depends(get_db),
 ):
     """Return the current user's staff record (or null if none). Auto-bootstraps for shop owners."""
-    # First try: any staff record for this user (including pending approval)
+    # First try: any active staff record(s) for this user (including pending approval)
     any_result = await db.execute(
         select(Staff).where(Staff.user_id == current_user.id, Staff.is_active == True)
     )
-    staff = any_result.scalar_one_or_none()
-    # If no record at all, try the owner fallback (auto-creates for shop owners)
-    if staff is None:
+    all_staff = any_result.scalars().all()
+
+    if len(all_staff) == 0:
+        # No record at all — try the owner fallback (auto-creates for shop owners)
         staff = await get_my_staff_owner_fallback(current_user, db)
+    elif len(all_staff) == 1:
+        staff = all_staff[0]
+    else:
+        # Multiple records: user both owns a shop AND joined another shop as staff.
+        # Prefer the invite-based (non-owner) record for shops they don't own — it
+        # represents the active staff relationship they care about most right now.
+        # Exclude records for rejected shops as those are stale auto-bootstrapped rows.
+        rejected_shop_ids_result = await db.execute(
+            select(Shop.id).where(Shop.owner_id == current_user.id, Shop.is_rejected == True)
+        )
+        rejected_shop_ids = {r for r, in rejected_shop_ids_result}
+        preferred = [s for s in all_staff if s.shop_id not in rejected_shop_ids]
+        staff = preferred[0] if preferred else all_staff[0]
     if staff is None:
         return None
     staff = await _load_user(staff, db)

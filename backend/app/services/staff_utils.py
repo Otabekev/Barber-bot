@@ -45,8 +45,10 @@ async def get_my_staff_owner_fallback(user: User, db: AsyncSession) -> Staff | N
     if staff:
         return staff
 
-    # Only heal for shop owners
-    shop_result = await db.execute(select(Shop).where(Shop.owner_id == user.id))
+    # Only heal for owners of active (non-rejected) shops
+    shop_result = await db.execute(
+        select(Shop).where(Shop.owner_id == user.id, Shop.is_rejected == False)
+    )
     shop = shop_result.scalar_one_or_none()
     if shop is None:
         return None
