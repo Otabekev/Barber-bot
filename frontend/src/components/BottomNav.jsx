@@ -23,10 +23,10 @@ export default function BottomNav() {
   const shopStaff = useStore((s) => s.shopStaff);
   const lang = user?.language || "uz";
 
-  // isBarber: full barber nav — approved staff OR shop owner
-  const isBarber = (staffRecord?.is_approved) || !!shop;
+  // isBarber: full barber nav — approved staff OR active (non-rejected) shop owner
+  const isBarber = staffRecord?.is_approved || (!!shop && !shop.is_rejected);
   // isPendingStaff: joined a shop but waiting for admin approval — show minimal nav
-  const isPendingStaff = !!staffRecord && !staffRecord.is_approved && !staffRecord.is_rejected && !shop;
+  const isPendingStaff = !!staffRecord && !staffRecord.is_approved && !staffRecord.is_rejected && (!shop || shop.is_rejected);
   // isOwner: staffRecord-based (preferred), or fall back to shop.owner_id match
   const isOwner = shop && (
     staffRecord ? shop.owner_id === staffRecord.user_id : shop.owner_id === user?.id

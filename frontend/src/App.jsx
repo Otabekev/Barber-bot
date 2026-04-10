@@ -112,12 +112,17 @@ export default function App() {
             log("getMyShop failed (expected if no real token):", e.message);
             return null;
           });
-          if (shop) setShop(shop);
           const staffRec = await getMyStaffRecord().catch(() => null);
+          // A rejected shop must not override the staff experience.
+          // Only store it when the user has no staff record (so they can reapply).
+          if (shop && (!shop.is_rejected || !staffRec)) setShop(shop);
           if (staffRec) {
             setStaffRecord(staffRec);
-            const allStaff = await getShopStaff().catch(() => []);
-            setShopStaff(allStaff);
+            // getShopStaff is owner-only; skip for non-owner / rejected-shop users
+            if (shop && !shop.is_rejected) {
+              const allStaff = await getShopStaff().catch(() => []);
+              setShopStaff(allStaff);
+            }
           }
         } else {
           log("No stored token — calling /auth/dev-login to get a real JWT");
@@ -126,12 +131,14 @@ export default function App() {
             log("Dev login success, user:", user.full_name);
             setAuth(access_token, user);
             const shop = await getMyShop().catch(() => null);
-            if (shop) setShop(shop);
             const staffRec2 = await getMyStaffRecord().catch(() => null);
+            if (shop && (!shop.is_rejected || !staffRec2)) setShop(shop);
             if (staffRec2) {
               setStaffRecord(staffRec2);
-              const allStaff2 = await getShopStaff().catch(() => []);
-              setShopStaff(allStaff2);
+              if (shop && !shop.is_rejected) {
+                const allStaff2 = await getShopStaff().catch(() => []);
+                setShopStaff(allStaff2);
+              }
             }
           } catch (e) {
             const detail = e.response?.data?.detail || e.message;
@@ -191,15 +198,20 @@ export default function App() {
           log("getMyShop failed (user has no shop yet):", e.message);
           return null;
         });
-        if (shop) {
+        const staffRec = await getMyStaffRecord().catch(() => null);
+        // A rejected shop must not override the staff experience.
+        // Only store it when the user has no staff record (so they can still reapply).
+        if (shop && (!shop.is_rejected || !staffRec)) {
           log("Shop loaded:", shop.name);
           setShop(shop);
         }
-        const staffRec = await getMyStaffRecord().catch(() => null);
         if (staffRec) {
           setStaffRecord(staffRec);
-          const allStaff = await getShopStaff().catch(() => []);
-          setShopStaff(allStaff);
+          // getShopStaff is owner-only; skip for non-owner / rejected-shop users
+          if (shop && !shop.is_rejected) {
+            const allStaff = await getShopStaff().catch(() => []);
+            setShopStaff(allStaff);
+          }
         }
       } catch (e) {
         const detail =

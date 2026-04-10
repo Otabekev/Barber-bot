@@ -110,8 +110,8 @@ export default function ShopSetup() {
   const { user, shop, staffRecord, setShop } = useStore();
   const lang = user?.language || "uz";
 
-  // Non-owner staff: show read-only shop view instead of the edit form
-  if (!shop && staffRecord) {
+  // Non-owner staff (or user whose own shop was rejected but joined another): show read-only view
+  if ((!shop || shop.is_rejected) && staffRecord) {
     return <StaffShopView lang={lang} />;
   }
   const [form, setForm] = useState(EMPTY);
