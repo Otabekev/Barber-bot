@@ -24,7 +24,12 @@ async def get_my_staff(user: User, db: AsyncSession) -> Staff:
 
 
 async def get_my_staff_optional(user: User, db: AsyncSession) -> Staff | None:
-    """Like get_my_staff but returns None instead of raising."""
+    """Like get_my_staff but returns None instead of raising.
+
+    When a user has multiple active+approved staff rows (e.g. they once owned a
+    rejected shop AND joined another shop as staff), prefer the record whose shop
+    is NOT rejected, so schedule/bookings/slots all point to the right shop.
+    """
     result = await db.execute(
         select(Staff).where(
             Staff.user_id == user.id,
@@ -32,7 +37,19 @@ async def get_my_staff_optional(user: User, db: AsyncSession) -> Staff | None:
             Staff.is_approved == True,
         )
     )
-    return result.scalar_one_or_none()
+    rows = result.scalars().all()
+    if not rows:
+        return None
+    if len(rows) == 1:
+        return rows[0]
+
+    # Multiple records — exclude those belonging to a rejected shop
+    rejected_ids_result = await db.execute(
+        select(Shop.id).where(Shop.owner_id == user.id, Shop.is_rejected == True)
+    )
+    rejected_shop_ids = {r for r, in rejected_ids_result}
+    preferred = [s for s in rows if s.shop_id not in rejected_shop_ids]
+    return preferred[0] if preferred else rows[0]
 
 
 async def get_my_staff_owner_fallback(user: User, db: AsyncSession) -> Staff | None:

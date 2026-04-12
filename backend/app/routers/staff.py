@@ -305,7 +305,20 @@ async def update_my_profile(
     db: AsyncSession = Depends(get_db),
 ):
     """Any active staff member can update their own display_name, phone, bio."""
-    staff = await get_my_staff(current_user, db)
+    # Allow pending staff too — they need to fill in their profile before approval
+    result = await db.execute(
+        select(Staff).where(Staff.user_id == current_user.id, Staff.is_active == True)
+    )
+    all_active = result.scalars().all()
+    if not all_active:
+        raise HTTPException(status_code=404, detail="No active staff record found")
+    # Prefer non-rejected-shop record when multiple exist
+    rejected_ids_result = await db.execute(
+        select(Shop.id).where(Shop.owner_id == current_user.id, Shop.is_rejected == True)
+    )
+    rejected_shop_ids = {r for r, in rejected_ids_result}
+    preferred = [s for s in all_active if s.shop_id not in rejected_shop_ids]
+    staff = preferred[0] if preferred else all_active[0]
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(staff, field, value)
     await db.commit()

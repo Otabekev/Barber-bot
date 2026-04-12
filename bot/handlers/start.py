@@ -168,7 +168,7 @@ async def handle_unknown(message: Message):
     lang = get_lang(message.from_user.id)
     name = message.from_user.first_name or message.from_user.full_name or ""
     await message.answer(
-        t("restart_button", "uz"),
+        t("restart_button", lang),
         reply_markup=persistent_keyboard(),
     )
     await message.answer(

@@ -249,8 +249,12 @@ function BlockedDaysPanel({ lang, onRemoved }) {
 }
 
 export default function BlockSlots() {
-  const { user, shop } = useStore();
+  const { user, shop, staffRecord } = useStore();
   const lang = user?.language || "uz";
+  // Owners have shop.id; non-owner staff use staffRecord.shop_id
+  const shopId = shop?.id ?? staffRecord?.shop_id ?? null;
+  const staffId = staffRecord?.id ?? null;
+
   const [date, setDate] = useState(today);
   const [slotData, setSlotData] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -260,15 +264,15 @@ export default function BlockSlots() {
   const refreshBlockedDays = useCallback(() => setBlockedDaysKey((k) => k + 1), []);
 
   useEffect(() => {
-    if (!shop) return;
+    if (!shopId) return;
     setSlotData(null);
-    getAvailableSlots(shop.id, date)
+    getAvailableSlots(shopId, date, "haircut", staffId)
       .then((data) => {
         setSlotData(data);
         setPendingBlocked(new Set(data.blocked || []));
       })
       .catch(() => toast(t("block_load_error", lang)));
-  }, [shop, date]);
+  }, [shopId, staffId, date]);
 
   function toggleSlot(slot) {
     if (slotData?.booked?.includes(slot)) return;
@@ -296,7 +300,7 @@ export default function BlockSlots() {
       if (toBlock.length > 0)   await blockSlots(date, toBlock);
       if (toUnblock.length > 0) await unblockSlots(date, toUnblock);
 
-      const fresh = await getAvailableSlots(shop.id, date);
+      const fresh = await getAvailableSlots(shopId, date, "haircut", staffId);
       setSlotData(fresh);
       setPendingBlocked(new Set(fresh.blocked || []));
       toast(t("block_saved", lang));
@@ -307,7 +311,7 @@ export default function BlockSlots() {
     }
   }
 
-  if (!shop) {
+  if (!shopId) {
     return (
       <div className="empty-state">
         <Store size={40} color="var(--hint)" style={{ margin: "0 auto 12px" }} />
@@ -328,7 +332,7 @@ export default function BlockSlots() {
         {t("block_slots_hint", lang)}
       </p>
 
-      <VacationPanel lang={lang} shopExists={!!shop} onChanged={refreshBlockedDays} />
+      <VacationPanel lang={lang} shopExists={!!shopId} onChanged={refreshBlockedDays} />
       <BlockedDaysPanel key={blockedDaysKey} lang={lang} onRemoved={refreshBlockedDays} />
 
       <div className="card">
