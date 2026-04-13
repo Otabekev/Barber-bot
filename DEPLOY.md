@@ -26,6 +26,7 @@ gh repo create barber-bot --public --push
 | `BOT_TOKEN` | Your bot token from @BotFather |
 | `SECRET_KEY` | Random 32+ char string |
 | `BOT_SECRET` | Random 32+ char string (same value in bot service) |
+| `BOT_USERNAME` | Your bot's username without `@` (e.g. `MyBarberBot`) — used for invite deep links |
 | `MINI_APP_URL` | Your frontend Railway URL (set after frontend deploys) |
 | `DEV_MODE` | `false` |
 

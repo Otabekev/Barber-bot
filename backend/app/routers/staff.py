@@ -334,7 +334,22 @@ async def upload_my_photo(
     db: AsyncSession = Depends(get_db),
 ):
     """Upload / replace the staff member's profile photo."""
-    staff = await get_my_staff(current_user, db)
+    # Use the same multi-row-safe resolution as update_my_profile — a user can
+    # have two active Staff rows (rejected-shop bootstrap + invite-based) and
+    # scalar_one_or_none() would raise MultipleResultsFound in that case.
+    result = await db.execute(
+        select(Staff).where(Staff.user_id == current_user.id, Staff.is_active == True)
+    )
+    all_active = result.scalars().all()
+    if not all_active:
+        raise HTTPException(status_code=404, detail="No active staff record found")
+    rejected_ids_result = await db.execute(
+        select(Shop.id).where(Shop.owner_id == current_user.id, Shop.is_rejected == True)
+    )
+    rejected_shop_ids = {r for r, in rejected_ids_result}
+    preferred = [s for s in all_active if s.shop_id not in rejected_shop_ids]
+    staff = preferred[0] if preferred else all_active[0]
+
     if file.content_type not in ("image/jpeg", "image/png", "image/webp"):
         raise HTTPException(status_code=400, detail="Unsupported image format")
     data = await file.read()
