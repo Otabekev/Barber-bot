@@ -1,7 +1,7 @@
 from aiogram import Router, F
-from aiogram.filters import CommandStart, CommandObject
+from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.types import (
-    Message,
+    Message,  # noqa: F401 — used by cmd_help and handle_restart
     CallbackQuery,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
@@ -150,6 +150,12 @@ async def handle_language_pick(callback: CallbackQuery, backend: BackendClient):
         parse_mode="HTML",
     )
     await callback.answer()
+
+
+@router.message(Command("help"))
+async def cmd_help(message: Message):
+    lang = get_lang(message.from_user.id)
+    await message.answer(t("help_text", lang), parse_mode="HTML")
 
 
 @router.callback_query(F.data == "menu:help")

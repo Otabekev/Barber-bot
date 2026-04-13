@@ -409,3 +409,47 @@ async def cancel_from_reminder(
                 ))
 
     return {"ok": True, "already": False}
+
+
+@router.get("/my-bookings")
+async def get_my_bookings(
+    telegram_id: int,
+    _: None = Depends(_verify_bot_secret),
+    db: AsyncSession = Depends(get_db),
+):
+    """Bot calls this for /mybookings command — returns upcoming bookings for a customer."""
+    user_result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        return {"bookings": [], "message": "not_registered"}
+
+    today = date.today()
+    bookings_result = await db.execute(
+        select(Booking).where(
+            Booking.customer_id == user.id,
+            Booking.status.in_(["pending", "confirmed"]),
+            Booking.booking_date >= today,
+        ).order_by(Booking.booking_date, Booking.time_slot)
+    )
+    bookings = bookings_result.scalars().all()
+
+    # Fetch shop names in one query
+    shop_ids = list({b.shop_id for b in bookings})
+    shops = {}
+    if shop_ids:
+        shops_result = await db.execute(select(Shop).where(Shop.id.in_(shop_ids)))
+        shops = {s.id: s.name for s in shops_result.scalars().all()}
+
+    return {
+        "bookings": [
+            {
+                "id": b.id,
+                "shop_name": shops.get(b.shop_id, ""),
+                "date": str(b.booking_date),
+                "time": b.time_slot,
+                "status": b.status,
+                "service": b.service_type,
+            }
+            for b in bookings
+        ]
+    }

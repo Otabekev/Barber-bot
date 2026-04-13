@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Users,
   User,
+  BarChart3,
 } from "lucide-react";
 import useStore from "../store/useStore";
 import { t } from "../i18n";
@@ -35,11 +36,12 @@ export default function BottomNav() {
   const hasTeam = !!staffRecord && shopStaff.filter((s) => s.is_active && s.is_approved).length > 1;
 
   const BARBER_ITEMS = [
-    { to: "/",            label: t("nav_home", lang),      icon: <Home size={ICON_SIZE} color={ICON_COLOR} /> },
-    { to: "/schedule",    label: t("nav_schedule", lang),  icon: <Calendar size={ICON_SIZE} color={ICON_COLOR} /> },
-    { to: "/bookings",    label: t("nav_bookings", lang),  icon: <ClipboardList size={ICON_SIZE} color={ICON_COLOR} /> },
-    { to: "/block-slots", label: t("nav_block", lang),     icon: <Ban size={ICON_SIZE} color={ICON_COLOR} /> },
-    { to: "/profile",     label: t("nav_profile", lang),   icon: <User size={ICON_SIZE} color={ICON_COLOR} /> },
+    { to: "/",            label: t("nav_home", lang),       icon: <Home size={ICON_SIZE} color={ICON_COLOR} /> },
+    { to: "/schedule",    label: t("nav_schedule", lang),   icon: <Calendar size={ICON_SIZE} color={ICON_COLOR} /> },
+    { to: "/bookings",    label: t("nav_bookings", lang),   icon: <ClipboardList size={ICON_SIZE} color={ICON_COLOR} /> },
+    { to: "/analytics",   label: t("nav_analytics", lang),  icon: <BarChart3 size={ICON_SIZE} color={ICON_COLOR} /> },
+    { to: "/block-slots", label: t("nav_block", lang),      icon: <Ban size={ICON_SIZE} color={ICON_COLOR} /> },
+    { to: "/profile",     label: t("nav_profile", lang),    icon: <User size={ICON_SIZE} color={ICON_COLOR} /> },
   ];
 
   // Owner-specific items in addition to barber items

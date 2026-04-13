@@ -51,5 +51,11 @@
   "shop_detail_no_staff": "Hozircha barber yo'q.",
   "staff_card": "💈 <b>{name}</b>",
   "back_to_shops": "⬅️ Sartaroshxonalarga",
-  "back_to_shop": "⬅️ Sartaroshxonaga"
+  "back_to_shop": "⬅️ Sartaroshxonaga",
+
+  "my_bookings_header": "📅 Mening bronlarim",
+  "my_bookings_empty": "Hozircha faol bron yo'q.",
+  "cancel_pick_title": "Qaysi bronni bekor qilmoqchisiz?",
+  "cancel_no_bookings": "Bekor qilish uchun faol bron yo'q.",
+  "cancel_done": "✅ Bron bekor qilindi."
 }

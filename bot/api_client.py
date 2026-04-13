@@ -99,6 +99,17 @@ class BackendClient:
             )
             return resp.status_code == 200
 
+    async def get_my_bookings(self, telegram_id: int) -> list:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                f"{self._base}/api/bot/my-bookings",
+                params={"telegram_id": telegram_id},
+                headers=self._headers,
+            )
+            if resp.status_code == 200:
+                return resp.json().get("bookings", [])
+        return []
+
     async def cancel_from_reminder(self, booking_id: int, telegram_id: int) -> dict:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.post(

@@ -248,5 +248,20 @@
   "btn_danger": "O'chirish",
   "all_staff": "Hammasi",
 
-  "shop_view_readonly_note": "Do'kon ma'lumotlarini faqat egasi o'zgartira oladi."
+  "shop_view_readonly_note": "Do'kon ma'lumotlarini faqat egasi o'zgartira oladi.",
+
+  "nav_analytics": "Tahlil",
+  "analytics_title": "Tahlil",
+  "analytics_period_week": "Hafta",
+  "analytics_period_month": "Oy",
+  "analytics_period_all": "Hammasi",
+  "analytics_total": "Jami",
+  "analytics_done": "Bajarildi",
+  "analytics_missed": "Kelmadi",
+  "analytics_completion_rate": "Bajarish foizi",
+  "analytics_no_shows": "kelmadi",
+  "analytics_returning": "qaytuvchi mijoz",
+  "analytics_services_title": "Xizmat turlari",
+  "analytics_busiest_day": "Eng band kun",
+  "analytics_no_data": "Hali ma'lumot yo'q."
 }

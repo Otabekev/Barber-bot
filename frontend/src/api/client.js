@@ -177,4 +177,8 @@ export const getShopReviews = (shopId) =>
 export const getMyShopReviews = () =>
   api.get("/reviews/my-shop").then((r) => r.data);
 
+// ── Analytics ─────────────────────────────────────────────────────────────────
+export const getMyAnalytics = (period = "month") =>
+  api.get("/analytics/my", { params: { period } }).then((r) => r.data);
+
 export default api;

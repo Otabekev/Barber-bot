@@ -248,5 +248,20 @@
   "btn_danger": "Remove",
   "all_staff": "All",
 
-  "shop_view_readonly_note": "Only the shop owner can edit these details."
+  "shop_view_readonly_note": "Only the shop owner can edit these details.",
+
+  "nav_analytics": "Analytics",
+  "analytics_title": "Analytics",
+  "analytics_period_week": "Week",
+  "analytics_period_month": "Month",
+  "analytics_period_all": "All time",
+  "analytics_total": "Total",
+  "analytics_done": "Completed",
+  "analytics_missed": "Missed",
+  "analytics_completion_rate": "Completion rate",
+  "analytics_no_shows": "no-shows",
+  "analytics_returning": "returning customers",
+  "analytics_services_title": "Services",
+  "analytics_busiest_day": "Busiest day",
+  "analytics_no_data": "No data yet."
 }

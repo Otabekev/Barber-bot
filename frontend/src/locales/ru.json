@@ -248,5 +248,20 @@
   "btn_danger": "Удалить",
   "all_staff": "Все",
 
-  "shop_view_readonly_note": "Изменять данные магазина может только владелец."
+  "shop_view_readonly_note": "Изменять данные магазина может только владелец.",
+
+  "nav_analytics": "Аналитика",
+  "analytics_title": "Аналитика",
+  "analytics_period_week": "Неделя",
+  "analytics_period_month": "Месяц",
+  "analytics_period_all": "Всё время",
+  "analytics_total": "Всего",
+  "analytics_done": "Выполнено",
+  "analytics_missed": "Пропущено",
+  "analytics_completion_rate": "Процент выполнения",
+  "analytics_no_shows": "не пришли",
+  "analytics_returning": "постоянных клиентов",
+  "analytics_services_title": "Услуги",
+  "analytics_busiest_day": "Самый загруженный день",
+  "analytics_no_data": "Данных пока нет."
 }

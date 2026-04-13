@@ -2,10 +2,12 @@ from datetime import date as _date
 
 from aiogram import Router, F
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import Command
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
+    Message,
     WebAppInfo,
     BufferedInputFile,
 )
@@ -434,4 +436,61 @@ async def handle_back(callback: CallbackQuery):
         reply_markup=main_menu_keyboard(lang),
         parse_mode="HTML",
     )
+    await callback.answer()
+
+
+# ── /mybookings ────────────────────────────────────────────────────────────────
+
+@router.message(Command("mybookings"))
+async def cmd_my_bookings(message: Message, backend: BackendClient):
+    lang = get_lang(message.from_user.id)
+    bookings = await backend.get_my_bookings(message.from_user.id)
+    if not bookings:
+        await message.answer(t("my_bookings_empty", lang))
+        return
+
+    STATUS_EMOJI = {"confirmed": "✅", "pending": "⏳"}
+    lines = [f"<b>{t('my_bookings_header', lang)}</b>\n"]
+    for b in bookings:
+        emoji = STATUS_EMOJI.get(b["status"], "•")
+        lines.append(f"{emoji} <b>{b['date']} {b['time']}</b> — {b['shop_name']}")
+    await message.answer("\n".join(lines), parse_mode="HTML")
+
+
+# ── /cancel ────────────────────────────────────────────────────────────────────
+
+@router.message(Command("cancel"))
+async def cmd_cancel(message: Message, backend: BackendClient):
+    lang = get_lang(message.from_user.id)
+    bookings = await backend.get_my_bookings(message.from_user.id)
+    if not bookings:
+        await message.answer(t("cancel_no_bookings", lang))
+        return
+
+    buttons = [
+        [InlineKeyboardButton(
+            text=f"{b['time']} — {b['shop_name']} ({b['date']})",
+            callback_data=f"cancel_bk:{b['id']}",
+        )]
+        for b in bookings
+    ]
+    await message.answer(
+        t("cancel_pick_title", lang),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+    )
+
+
+@router.callback_query(F.data.startswith("cancel_bk:"))
+async def handle_cancel_pick(callback: CallbackQuery, backend: BackendClient):
+    lang = get_lang(callback.from_user.id)
+    booking_id = int(callback.data.split(":")[1])
+    result = await backend.cancel_from_reminder(
+        booking_id=booking_id,
+        telegram_id=callback.from_user.id,
+    )
+    await callback.message.edit_reply_markup(reply_markup=None)
+    if result.get("already"):
+        await callback.message.answer(t("cancel_done", lang))
+    else:
+        await callback.message.answer(t("cancel_done", lang))
     await callback.answer()

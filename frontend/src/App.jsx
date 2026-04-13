@@ -15,6 +15,7 @@ import ReviewPage from "./pages/ReviewPage";
 import Team from "./pages/Team";
 import JoinShop from "./pages/JoinShop";
 import StaffProfile from "./pages/StaffProfile";
+import Analytics from "./pages/Analytics";
 
 // Set VITE_DEV_BYPASS_TELEGRAM=true in frontend/.env.local to skip Telegram auth
 const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_TELEGRAM === "true";
@@ -81,6 +82,7 @@ function AppRoutes() {
         <Route path="/team"        element={<Team />} />
         <Route path="/join"        element={<JoinShop />} />
         <Route path="/profile"     element={<StaffProfile />} />
+        <Route path="/analytics"   element={<Analytics />} />
         <Route path="*"            element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

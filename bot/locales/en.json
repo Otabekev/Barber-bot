@@ -51,5 +51,11 @@
   "shop_detail_no_staff": "No barbers listed yet.",
   "staff_card": "💈 <b>{name}</b>",
   "back_to_shops": "⬅️ Back to shops",
-  "back_to_shop": "⬅️ Back to shop"
+  "back_to_shop": "⬅️ Back to shop",
+
+  "my_bookings_header": "📅 My Bookings",
+  "my_bookings_empty": "You have no upcoming bookings.",
+  "cancel_pick_title": "Which booking would you like to cancel?",
+  "cancel_no_bookings": "You have no active bookings to cancel.",
+  "cancel_done": "✅ Booking cancelled."
 }

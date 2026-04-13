@@ -4,6 +4,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.types import BotCommand
 
 from bot.config import load_config
 from bot.api_client import BackendClient
@@ -35,6 +36,16 @@ async def main():
     dp.include_router(barber.router)
     dp.include_router(customer.router)
     dp.include_router(start.router)
+
+    # Register slash commands so they appear in the Telegram "/" menu
+    await bot.set_my_commands([
+        BotCommand(command="start",       description="Open bot / choose language"),
+        BotCommand(command="help",        description="Help & instructions"),
+        BotCommand(command="mybookings",  description="View your upcoming bookings"),
+        BotCommand(command="cancel",      description="Cancel an upcoming booking"),
+        BotCommand(command="setlocation", description="Set your shop location (barbers only)"),
+        BotCommand(command="bugun",       description="Today's bookings (barbers only)"),
+    ])
 
     logger.info("Bot starting...")
     await bot.delete_webhook(drop_pending_updates=True)

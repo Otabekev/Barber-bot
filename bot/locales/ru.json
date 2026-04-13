@@ -51,5 +51,11 @@
   "shop_detail_no_staff": "Пока нет барберов.",
   "staff_card": "💈 <b>{name}</b>",
   "back_to_shops": "⬅️ К списку шопов",
-  "back_to_shop": "⬅️ К барбершопу"
+  "back_to_shop": "⬅️ К барбершопу",
+
+  "my_bookings_header": "📅 Мои записи",
+  "my_bookings_empty": "Нет активных записей.",
+  "cancel_pick_title": "Какую запись отменить?",
+  "cancel_no_bookings": "Нет активных записей для отмены.",
+  "cancel_done": "✅ Запись отменена."
 }
