@@ -54,7 +54,7 @@ def _regions_keyboard(lang: str) -> InlineKeyboardMarkup:
 @router.callback_query(F.data == "menu:find_barber")
 async def handle_find_barber(callback: CallbackQuery):
     lang = get_lang(callback.from_user.id)
-    await callback.message.edit_text(t("choose_region", lang), reply_markup=_regions_keyboard(lang))
+    await _safe_edit(callback, t("choose_region", lang), reply_markup=_regions_keyboard(lang))
     await callback.answer()
 
 
@@ -84,7 +84,8 @@ def _districts_keyboard(region: str, lang: str) -> InlineKeyboardMarkup:
 async def handle_region_pick(callback: CallbackQuery):
     region = callback.data[len("region:"):]
     lang = get_lang(callback.from_user.id)
-    await callback.message.edit_text(
+    await _safe_edit(
+        callback,
         t("choose_district", lang, region=region),
         reply_markup=_districts_keyboard(region, lang),
         parse_mode="HTML",
@@ -107,7 +108,8 @@ async def handle_district_pick(callback: CallbackQuery, backend: BackendClient):
     back_cb = f"region:{region}"
 
     if not shops:
-        await callback.message.edit_text(
+        await _safe_edit(
+            callback,
             t("no_shops", lang),
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text=t("back", lang), callback_data=back_cb)]
@@ -211,7 +213,8 @@ async def handle_shop_pick(callback: CallbackQuery, backend: BackendClient, mini
             await callback.answer()
             return
 
-    await callback.message.edit_text(
+    await _safe_edit(
+        callback,
         card_text,
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -431,7 +434,8 @@ async def handle_back(callback: CallbackQuery):
     from bot.handlers.start import main_menu_keyboard
     lang = get_lang(callback.from_user.id)
     name = callback.from_user.first_name or callback.from_user.full_name or ""
-    await callback.message.edit_text(
+    await _safe_edit(
+        callback,
         t("main_menu", lang, name=name),
         reply_markup=main_menu_keyboard(lang),
         parse_mode="HTML",
